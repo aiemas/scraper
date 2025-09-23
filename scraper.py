@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Platinsport scraper aggiornato
+Platinsport scraper definitivo
 - Trova link bc.vc vicino agli eventi
-- Segue automaticamente il redirect dello shortener
-- Recupera link AceStream
+- Estrae il link diretto alla pagina /link/…
+- Recupera tutti i link AceStream
 - Salva playlist platinsport.m3u nella root
 """
 
@@ -15,21 +15,17 @@ PLATIN_URL = "https://www.platinsport.com"
 OUTPUT_FILE = "platinsport.m3u"
 
 
-async def resolve_bcvc(bcvc_url: str) -> str:
-    """Risolvi bc.vc seguendo il redirect finale automaticamente"""
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
-        
-        print(f"[INFO] Apro bc.vc: {bcvc_url}")
-        await page.goto(bcvc_url, timeout=60000, wait_until="networkidle")
-        
-        # aspetta alcuni secondi per il redirect automatico
-        await page.wait_for_timeout(5000)
-        final_url = page.url
-        print(f"[INFO] URL finale ottenuto: {final_url}")
-        await browser.close()
-        return final_url
+async def get_direct_link(bcvc_url: str) -> str:
+    """
+    Estrae il link diretto alla pagina /link/... dalla URL bc.vc
+    Es: http://bc.vc/179424/https://www.platinsport.com/link/23dinqxz/01.php
+         -> https://www.platinsport.com/link/23dinqxz/01.php
+    """
+    # split sulla terza barra per prendere la parte giusta
+    parts = bcvc_url.split("/", 3)
+    if len(parts) < 4:
+        return bcvc_url  # fallback
+    return parts[3] if parts[3].startswith("http") else "https://" + parts[2] + "/" + parts[3]
 
 
 async def main():
@@ -40,7 +36,7 @@ async def main():
         await page.goto(PLATIN_URL, timeout=60000)
         await page.wait_for_load_state("domcontentloaded")
 
-        # estrai TUTTI i link bc.vc dal DOM
+        # estrai tutti i link bc.vc dal DOM
         content = await page.content()
         bcvc_links = re.findall(r"https?://bc\.vc/[^\s\"'>]+", content)
 
@@ -52,14 +48,15 @@ async def main():
         bcvc_url = bcvc_links[0]
         print(f"[INFO] Trovato link bc.vc: {bcvc_url}")
 
-        print("[INFO] Risolvo shortener...")
-        final_url = await resolve_bcvc(bcvc_url)
+        # estrai link diretto alla pagina dei canali
+        final_url = await get_direct_link(bcvc_url)
+        print(f"[INFO] Link diretto alla pagina dei canali: {final_url}")
 
+        # apri la pagina /link/... e cerca AceStream
         print("[INFO] Carico pagina finale e cerco link AceStream...")
         await page.goto(final_url, timeout=60000)
         await page.wait_for_load_state("networkidle")
 
-        # estrai link AceStream dalla pagina finale
         page_content = await page.content()
         acestream_links = list(set(re.findall(r"acestream://[a-f0-9]{40}", page_content)))
 
@@ -70,7 +67,7 @@ async def main():
 
         print(f"[INFO] Trovati {len(acestream_links)} link AceStream")
 
-        # salva playlist m3u
+        # salva playlist M3U
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
             for i, link in enumerate(acestream_links, 1):
