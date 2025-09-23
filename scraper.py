@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 """
-Platinsport scraper finale
-- Trova link bc.vc vicino agli eventi
-- Estrae il link diretto alla pagina /link/... dei canali AceStream
-- Recupera tutti i link AceStream
-- Genera playlist M3U gerarchica con link HTTP per VLC/AceStream
-    - gruppo = orario + partita
-    - canali = link AceStream
+Platinsport scraper - playlist M3U gerarchica
+- Gruppo = orario + partita
+- Canali = link AceStream
+- Trasformazione AceStream in link HTTP locale per VLC/AcePlayer
 """
 
 import asyncio
@@ -21,7 +18,7 @@ def get_direct_link(bcvc_url: str) -> str:
     match = re.search(r"https?://www\.platinsport\.com/link/[^\s\"'>]+", bcvc_url)
     if match:
         return match.group(0)
-    return bcvc_url  # fallback
+    return bcvc_url
 
 async def main():
     async with async_playwright() as p:
@@ -31,7 +28,7 @@ async def main():
         await page.goto(PLATIN_URL, timeout=60000)
         await page.wait_for_load_state("domcontentloaded")
 
-        # estrai tutti i link bc.vc dal DOM
+        # estrai link bc.vc
         content = await page.content()
         bcvc_links = re.findall(r"https?://bc\.vc/[^\s\"'>]+", content)
 
@@ -43,16 +40,14 @@ async def main():
         bcvc_url = bcvc_links[0]
         print(f"[INFO] Trovato link bc.vc: {bcvc_url}")
 
-        # estrai link diretto alla pagina dei canali AceStream
         final_url = get_direct_link(bcvc_url)
         print(f"[INFO] Link diretto alla pagina dei canali: {final_url}")
 
-        # apri la pagina /link/... e cerca AceStream
-        print("[INFO] Carico pagina finale e cerco link AceStream...")
+        print("[INFO] Carico pagina dei canali AceStream...")
         await page.goto(final_url, timeout=60000)
         await page.wait_for_load_state("networkidle")
 
-        # selezioniamo tutti gli elementi dentro il container principale (es. myDiv1)
+        # seleziona tutti i figli del container principale
         container = await page.query_selector(".myDiv1")
         if not container:
             print("[ERRORE] Container principale non trovato")
@@ -65,32 +60,32 @@ async def main():
             await browser.close()
             return
 
-        print("[INFO] Analizzo gli elementi per costruire playlist gerarchica...")
+        print("[INFO] Analizzo gli elementi e creo playlist M3U...")
+
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
-            current_group = "Unknown Match"
+            current_group = None
 
             for el in children:
                 tag_name = await el.evaluate("e => e.tagName")
                 text = await el.evaluate("e => e.textContent.trim()")
 
-                # se la riga contiene orario + partita (es. "20:45 Falkirk vs Hibernian")
-                if re.match(r"\d{1,2}:\d{2} .+ vs .+", text):
+                # riga partita: orario + vs + squadra
+                if re.match(r"^\d{1,2}:\d{2} .+ vs .+", text):
                     current_group = text
+                    continue
 
-                # se la riga è un link AceStream
+                # link AceStream
                 elif tag_name == "A":
                     href = await el.get_attribute("href")
-                    if href and href.startswith("acestream://"):
+                    if href and href.startswith("acestream://") and current_group:
                         channel_title = text if len(text) > 0 else "Channel"
-                        # trasforma content_id in link HTTP locale
                         content_id = href.replace("acestream://", "")
                         http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
                         f.write(f'#EXTINF:-1 group-title="{current_group}",{channel_title}\n{http_link}\n')
 
-        print(f"[OK] Playlist gerarchica salvata in {OUTPUT_FILE}")
+        print(f"[OK] Playlist salvata in {OUTPUT_FILE}")
         await browser.close()
-
 
 if __name__ == "__main__":
     asyncio.run(main())
