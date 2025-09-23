@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 """
-platinsport_scraper.py
+Platinsport scraper - Playwright only
 - Apre Platinsport
-- Trova il link bcvc.ink (shortener)
-- Lo risolve cliccando su "Get Link" con Playwright
-- Recupera i link AceStream dalla pagina finale
-- Salva tutto in platinsport.m3u nella root della repo
+- Trova link bcvc
+- Risolve shortener con click su Get Link
+- Recupera link AceStream
+- Salva platinsport.m3u nella root
 """
 
-import re
 import asyncio
-import requests
-from bs4 import BeautifulSoup
+import re
 from playwright.async_api import async_playwright
 
 PLATIN_URL = "https://www.platinsport.com"
@@ -29,52 +27,64 @@ async def resolve_bcvc(bcvc_url: str) -> str:
         await page.wait_for_selector("a#getlink", timeout=60000)
         await page.click("a#getlink")
 
-        # Aspetta il redirect finale
+        # Aspetta redirect finale
         await page.wait_for_load_state("networkidle")
         final_url = page.url
-
         await browser.close()
         return final_url
 
 
-def extract_acestream_links(html: str):
-    """Trova link acestream nella pagina"""
-    links = re.findall(r"(acestream://[^\s\"']+)", html)
-    return list(set(links))
-
-
 async def main():
-    print("[INFO] Scarico pagina Platinsport...")
-    r = requests.get(PLATIN_URL, timeout=30)
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
+        print("[INFO] Carico Platinsport...")
+        await page.goto(PLATIN_URL, timeout=60000)
 
-    # cerca link bcvc in tutto l'HTML (non solo <a>)
-    bcvc_links = re.findall(r"https?://bcvc\.[^\s\"']+", r.text)
-    if not bcvc_links:
-        print("[ERRORE] Nessun link bcvc trovato")
-        return
+        # aspetta che vengano generati i link bcvc
+        await page.wait_for_selector("a[href*='bcvc']", timeout=30000)
 
-    bcvc_url = bcvc_links[0]
-    print(f"[INFO] Trovato link bcvc: {bcvc_url}")
+        # estrai i link bcvc dal DOM renderizzato
+        bcvc_links = await page.eval_on_selector_all(
+            "a[href*='bcvc']",
+            "elements => elements.map(e => e.href)"
+        )
 
-    print("[INFO] Risolvo shortener con Playwright...")
-    final_url = await resolve_bcvc(bcvc_url)
-    print(f"[INFO] URL finale: {final_url}")
+        if not bcvc_links:
+            print("[ERRORE] Nessun link bcvc trovato")
+            await browser.close()
+            return
 
-    print("[INFO] Scarico pagina finale...")
-    r2 = requests.get(final_url, timeout=30)
-    acestream_links = extract_acestream_links(r2.text)
+        bcvc_url = bcvc_links[0]
+        print(f"[INFO] Trovato link bcvc: {bcvc_url}")
 
-    if not acestream_links:
-        print("[ERRORE] Nessun link AceStream trovato")
-        return
+        print("[INFO] Risolvo shortener...")
+        final_url = await resolve_bcvc(bcvc_url)
+        print(f"[INFO] URL finale: {final_url}")
 
-    print(f"[INFO] Trovati {len(acestream_links)} link AceStream")
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        f.write("#EXTM3U\n")
-        for i, link in enumerate(acestream_links, 1):
-            f.write(f"#EXTINF:-1,Evento {i}\n{link}\n")
+        print("[INFO] Carico pagina finale e cerco link AceStream...")
+        await page.goto(final_url, timeout=60000)
+        await page.wait_for_load_state("networkidle")
 
-    print(f"[OK] Playlist salvata in {OUTPUT_FILE}")
+        # estrai link AceStream dalla pagina
+        page_content = await page.content()
+        acestream_links = list(set(re.findall(r"acestream://[a-f0-9]{40}", page_content)))
+
+        if not acestream_links:
+            print("[ERRORE] Nessun link AceStream trovato")
+            await browser.close()
+            return
+
+        print(f"[INFO] Trovati {len(acestream_links)} link AceStream")
+
+        # salva playlist m3u
+        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+            f.write("#EXTM3U\n")
+            for i, link in enumerate(acestream_links, 1):
+                f.write(f"#EXTINF:-1,Evento {i}\n{link}\n")
+
+        print(f"[OK] Playlist salvata in {OUTPUT_FILE}")
+        await browser.close()
 
 
 if __name__ == "__main__":
