@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Platinsport scraper definitivo
+Platinsport scraper finale
 - Trova link bc.vc vicino agli eventi
 - Estrae il link diretto alla pagina /link/... dei canali AceStream
 - Recupera tutti i link AceStream
 - Genera playlist M3U gerarchica con link HTTP per VLC/AceStream
-    - gruppo = partita/evento
-    - canali = link AceStream via HTTP locale
+    - gruppo = orario + partita
+    - canali = link AceStream
 """
 
 import asyncio
@@ -16,14 +16,12 @@ from playwright.async_api import async_playwright
 PLATIN_URL = "https://www.platinsport.com"
 OUTPUT_FILE = "platinsport.m3u"
 
-
 def get_direct_link(bcvc_url: str) -> str:
     """Estrae il link diretto alla pagina /link/... dalla URL bc.vc"""
     match = re.search(r"https?://www\.platinsport\.com/link/[^\s\"'>]+", bcvc_url)
     if match:
         return match.group(0)
     return bcvc_url  # fallback
-
 
 async def main():
     async with async_playwright() as p:
@@ -70,13 +68,17 @@ async def main():
         print("[INFO] Analizzo gli elementi per costruire playlist gerarchica...")
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
-            current_group = "Unknown Event"
+            current_group = "Unknown Match"
+
             for el in children:
                 tag_name = await el.evaluate("e => e.tagName")
                 text = await el.evaluate("e => e.textContent.trim()")
-                if tag_name in ["STRONG", "H5", "DIV", "P"]:  # blocchi titolo partita
-                    if len(text) > 0:
-                        current_group = text
+
+                # se la riga contiene orario + partita (es. "20:45 Falkirk vs Hibernian")
+                if re.match(r"\d{1,2}:\d{2} .+ vs .+", text):
+                    current_group = text
+
+                # se la riga è un link AceStream
                 elif tag_name == "A":
                     href = await el.get_attribute("href")
                     if href and href.startswith("acestream://"):
@@ -84,7 +86,6 @@ async def main():
                         # trasforma content_id in link HTTP locale
                         content_id = href.replace("acestream://", "")
                         http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
-                        # scrive #EXTINF con group-title
                         f.write(f'#EXTINF:-1 group-title="{current_group}",{channel_title}\n{http_link}\n')
 
         print(f"[OK] Playlist gerarchica salvata in {OUTPUT_FILE}")
