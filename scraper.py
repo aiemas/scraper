@@ -4,9 +4,9 @@ Platinsport scraper definitivo
 - Trova link bc.vc vicino agli eventi
 - Estrae il link diretto alla pagina /link/... dei canali AceStream
 - Recupera tutti i link AceStream
-- Genera playlist M3U gerarchica:
+- Genera playlist M3U gerarchica con link HTTP per VLC/AceStream
     - gruppo = partita/evento
-    - canali = link AceStream
+    - canali = link AceStream via HTTP locale
 """
 
 import asyncio
@@ -18,9 +18,7 @@ OUTPUT_FILE = "platinsport.m3u"
 
 
 def get_direct_link(bcvc_url: str) -> str:
-    """
-    Estrae il link diretto alla pagina /link/... dalla URL bc.vc
-    """
+    """Estrae il link diretto alla pagina /link/... dalla URL bc.vc"""
     match = re.search(r"https?://www\.platinsport\.com/link/[^\s\"'>]+", bcvc_url)
     if match:
         return match.group(0)
@@ -83,8 +81,11 @@ async def main():
                     href = await el.get_attribute("href")
                     if href and href.startswith("acestream://"):
                         channel_title = text if len(text) > 0 else "Channel"
+                        # trasforma content_id in link HTTP locale
+                        content_id = href.replace("acestream://", "")
+                        http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
                         # scrive #EXTINF con group-title
-                        f.write(f'#EXTINF:-1 group-title="{current_group}",{channel_title}\n{href}\n')
+                        f.write(f'#EXTINF:-1 group-title="{current_group}",{channel_title}\n{http_link}\n')
 
         print(f"[OK] Playlist gerarchica salvata in {OUTPUT_FILE}")
         await browser.close()
