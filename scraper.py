@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """
-Platinsport scraper - Playwright only
-- Apre Platinsport
-- Trova link bcvc
-- Risolve shortener con click su Get Link
+Platinsport scraper aggiornato
+- Trova link bc.vc vicino agli eventi
+- Risolve lo shortener cliccando su "Get Link"
 - Recupera link AceStream
-- Salva platinsport.m3u nella root
+- Salva playlist platinsport.m3u nella root
 """
 
 import asyncio
@@ -23,7 +22,7 @@ async def resolve_bcvc(bcvc_url: str) -> str:
         page = await browser.new_page()
         await page.goto(bcvc_url, timeout=60000)
 
-        # Attende il bottone "Get Link"
+        # Attende il bottone "Get Link" e clicca
         await page.wait_for_selector("a#getlink", timeout=60000)
         await page.click("a#getlink")
 
@@ -41,22 +40,20 @@ async def main():
         print("[INFO] Carico Platinsport...")
         await page.goto(PLATIN_URL, timeout=60000)
 
-        # aspetta che vengano generati i link bcvc
-        await page.wait_for_selector("a[href*='bcvc']", timeout=30000)
+        # aspetta il caricamento del DOM
+        await page.wait_for_load_state("domcontentloaded")
+        content = await page.content()
 
-        # estrai i link bcvc dal DOM renderizzato
-        bcvc_links = await page.eval_on_selector_all(
-            "a[href*='bcvc']",
-            "elements => elements.map(e => e.href)"
-        )
+        # estrai TUTTI i link bc.vc dal DOM
+        bcvc_links = re.findall(r"https?://bc\.vc/[^\s\"'>]+", content)
 
         if not bcvc_links:
-            print("[ERRORE] Nessun link bcvc trovato")
+            print("[ERRORE] Nessun link bc.vc trovato")
             await browser.close()
             return
 
         bcvc_url = bcvc_links[0]
-        print(f"[INFO] Trovato link bcvc: {bcvc_url}")
+        print(f"[INFO] Trovato link bc.vc: {bcvc_url}")
 
         print("[INFO] Risolvo shortener...")
         final_url = await resolve_bcvc(bcvc_url)
@@ -66,7 +63,7 @@ async def main():
         await page.goto(final_url, timeout=60000)
         await page.wait_for_load_state("networkidle")
 
-        # estrai link AceStream dalla pagina
+        # estrai link AceStream dalla pagina finale
         page_content = await page.content()
         acestream_links = list(set(re.findall(r"acestream://[a-f0-9]{40}", page_content)))
 
