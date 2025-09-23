@@ -2,7 +2,7 @@
 """
 Platinsport scraper aggiornato
 - Trova link bc.vc vicino agli eventi
-- Risolve lo shortener cliccando su "Get Link"
+- Segue automaticamente il redirect dello shortener
 - Recupera link AceStream
 - Salva playlist platinsport.m3u nella root
 """
@@ -16,19 +16,18 @@ OUTPUT_FILE = "platinsport.m3u"
 
 
 async def resolve_bcvc(bcvc_url: str) -> str:
-    """Usa Playwright per cliccare su 'Get Link' e ottenere l'URL finale"""
+    """Risolvi bc.vc seguendo il redirect finale automaticamente"""
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
-        await page.goto(bcvc_url, timeout=60000)
-
-        # Attende il bottone "Get Link" e clicca
-        await page.wait_for_selector("a#getlink", timeout=60000)
-        await page.click("a#getlink")
-
-        # Aspetta redirect finale
-        await page.wait_for_load_state("networkidle")
+        
+        print(f"[INFO] Apro bc.vc: {bcvc_url}")
+        await page.goto(bcvc_url, timeout=60000, wait_until="networkidle")
+        
+        # aspetta alcuni secondi per il redirect automatico
+        await page.wait_for_timeout(5000)
         final_url = page.url
+        print(f"[INFO] URL finale ottenuto: {final_url}")
         await browser.close()
         return final_url
 
@@ -39,12 +38,10 @@ async def main():
         page = await browser.new_page()
         print("[INFO] Carico Platinsport...")
         await page.goto(PLATIN_URL, timeout=60000)
-
-        # aspetta il caricamento del DOM
         await page.wait_for_load_state("domcontentloaded")
-        content = await page.content()
 
         # estrai TUTTI i link bc.vc dal DOM
+        content = await page.content()
         bcvc_links = re.findall(r"https?://bc\.vc/[^\s\"'>]+", content)
 
         if not bcvc_links:
@@ -57,7 +54,6 @@ async def main():
 
         print("[INFO] Risolvo shortener...")
         final_url = await resolve_bcvc(bcvc_url)
-        print(f"[INFO] URL finale: {final_url}")
 
         print("[INFO] Carico pagina finale e cerco link AceStream...")
         await page.goto(final_url, timeout=60000)
