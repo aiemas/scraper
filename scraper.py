@@ -5,7 +5,7 @@ Platinsport scraper definitivo
 - Estrae il link diretto alla pagina /link/... dei canali AceStream
 - Recupera tutti i link AceStream
 - Genera playlist M3U gerarchica con link HTTP per VLC/AceStream
-    - gruppo = partita/evento
+    - gruppo = partita/evento + orario + squadra vs squadra
     - canali = link AceStream via HTTP locale
 """
 
@@ -69,20 +69,27 @@ async def main():
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
             current_group = "Unknown Event"
+
             for el in children:
                 tag_name = await el.evaluate("e => e.tagName")
                 text = await el.evaluate("e => e.textContent.trim()")
-                if tag_name in ["STRONG", "H5", "DIV", "P"]:  # blocchi titolo partita
+
+                # blocchi titolo partita/torneo
+                if tag_name in ["STRONG", "H5", "DIV", "P"]:
                     if len(text) > 0:
-                        current_group = text
+                        # controlla se il testo contiene orario + partita (es. 20:45 Team1 vs Team2)
+                        match = re.match(r"(\d{2}:\d{2})\s+(.+vs.+)", text)
+                        if match:
+                            current_group = f"{current_group} - {match.group(1)} {match.group(2)}"
+                        else:
+                            current_group = text
+
                 elif tag_name == "A":
                     href = await el.get_attribute("href")
                     if href and href.startswith("acestream://"):
                         channel_title = text if len(text) > 0 else "Channel"
-                        # trasforma content_id in link HTTP locale
                         content_id = href.replace("acestream://", "")
                         http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
-                        # scrive #EXTINF con group-title
                         f.write(f'#EXTINF:-1 group-title="{current_group}",{channel_title}\n{http_link}\n')
 
         print(f"[OK] Playlist gerarchica salvata in {OUTPUT_FILE}")
