@@ -4,7 +4,9 @@ Platinsport scraper definitivo
 - Trova link bc.vc vicino agli eventi
 - Estrae correttamente il link diretto alla pagina /link/... dei canali AceStream
 - Recupera tutti i link AceStream
-- Genera playlist M3U con i nomi reali degli eventi
+- Genera playlist M3U gerarchica:
+    - evento = group-title
+    - canali AceStream = sottogruppi
 """
 
 import asyncio
@@ -18,8 +20,6 @@ OUTPUT_FILE = "platinsport.m3u"
 def get_direct_link(bcvc_url: str) -> str:
     """
     Estrae il link diretto alla pagina /link/... dalla URL bc.vc
-    Es: http://bc.vc/179424/https://www.platinsport.com/link/23dinqxz/01.php
-         -> https://www.platinsport.com/link/23dinqxz/01.php
     """
     match = re.search(r"https?://www\.platinsport\.com/link/[^\s\"'>]+", bcvc_url)
     if match:
@@ -65,18 +65,21 @@ async def main():
 
         print(f"[INFO] Trovati {len(links)} link AceStream")
 
-        # salva playlist M3U con i nomi reali degli eventi
+        # salva playlist M3U gerarchica
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
             for ln in links:
                 href = await ln.get_attribute("href")
-                # recupera il nome dell'evento (testo del nodo precedente o del link)
-                title = await ln.evaluate(
+                # titolo del canale (testo del link)
+                channel_title = await ln.evaluate("el => el.textContent.trim()")
+                # nome dell'evento = gruppo (testo del nodo precedente, o del link se non esiste)
+                group_title = await ln.evaluate(
                     "el => el.previousSibling && el.previousSibling.textContent.trim().length>0 ? el.previousSibling.textContent.trim() : el.textContent.trim()"
                 )
-                f.write(f"#EXTINF:-1,{title}\n{href}\n")
+                # scrive #EXTINF con group-title
+                f.write(f'#EXTINF:-1 group-title="{group_title}",{channel_title}\n{href}\n')
 
-        print(f"[OK] Playlist salvata in {OUTPUT_FILE}")
+        print(f"[OK] Playlist gerarchica salvata in {OUTPUT_FILE}")
         await browser.close()
 
 
