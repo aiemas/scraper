@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Platinsport scraper definitivo
+Platinsport scraper definitivo corretto
 - Trova link bc.vc vicino agli eventi
-- Estrae il link diretto alla pagina /link/…
+- Estrae correttamente il link diretto alla pagina /link/... dei canali AceStream
 - Recupera tutti i link AceStream
 - Salva playlist platinsport.m3u nella root
 """
@@ -15,17 +15,16 @@ PLATIN_URL = "https://www.platinsport.com"
 OUTPUT_FILE = "platinsport.m3u"
 
 
-async def get_direct_link(bcvc_url: str) -> str:
+def get_direct_link(bcvc_url: str) -> str:
     """
     Estrae il link diretto alla pagina /link/... dalla URL bc.vc
     Es: http://bc.vc/179424/https://www.platinsport.com/link/23dinqxz/01.php
          -> https://www.platinsport.com/link/23dinqxz/01.php
     """
-    # split sulla terza barra per prendere la parte giusta
-    parts = bcvc_url.split("/", 3)
-    if len(parts) < 4:
-        return bcvc_url  # fallback
-    return parts[3] if parts[3].startswith("http") else "https://" + parts[2] + "/" + parts[3]
+    match = re.search(r"https?://www\.platinsport\.com/link/[^\s\"'>]+", bcvc_url)
+    if match:
+        return match.group(0)
+    return bcvc_url  # fallback
 
 
 async def main():
@@ -48,8 +47,8 @@ async def main():
         bcvc_url = bcvc_links[0]
         print(f"[INFO] Trovato link bc.vc: {bcvc_url}")
 
-        # estrai link diretto alla pagina dei canali
-        final_url = await get_direct_link(bcvc_url)
+        # estrai link diretto alla pagina dei canali AceStream
+        final_url = get_direct_link(bcvc_url)
         print(f"[INFO] Link diretto alla pagina dei canali: {final_url}")
 
         # apri la pagina /link/... e cerca AceStream
