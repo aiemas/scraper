@@ -2,8 +2,8 @@ name: Platinsport Scraper
 
 on:
   schedule:
-    - cron: "0 6 * * *"  # ogni giorno alle 6 UTC
-  workflow_dispatch:
+    - cron: "0 6 * * *"   # ogni giorno alle 6 UTC
+  workflow_dispatch:      # avvio manuale dal tab Actions
 
 jobs:
   scrape:
