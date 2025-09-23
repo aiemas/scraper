@@ -22,6 +22,7 @@ async def get_links():
             await page.goto(evento, timeout=60000)
 
             try:
+                # aspetta il bottone "Get Link" e clicca
                 await page.wait_for_selector("a#getlink", timeout=15000)
                 await page.click("a#getlink")
                 await page.wait_for_load_state("networkidle")
