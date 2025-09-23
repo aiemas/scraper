@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Platinsport scraper definitivo corretto
+Platinsport scraper definitivo
 - Trova link bc.vc vicino agli eventi
 - Estrae correttamente il link diretto alla pagina /link/... dei canali AceStream
 - Recupera tutti i link AceStream
-- Salva playlist platinsport.m3u nella root
+- Genera playlist M3U con i nomi reali degli eventi
 """
 
 import asyncio
@@ -56,21 +56,25 @@ async def main():
         await page.goto(final_url, timeout=60000)
         await page.wait_for_load_state("networkidle")
 
-        page_content = await page.content()
-        acestream_links = list(set(re.findall(r"acestream://[a-f0-9]{40}", page_content)))
-
-        if not acestream_links:
+        # selezioniamo tutti i link AceStream nella pagina
+        links = await page.query_selector_all("a[href^='acestream://']")
+        if not links:
             print("[ERRORE] Nessun link AceStream trovato")
             await browser.close()
             return
 
-        print(f"[INFO] Trovati {len(acestream_links)} link AceStream")
+        print(f"[INFO] Trovati {len(links)} link AceStream")
 
-        # salva playlist M3U
+        # salva playlist M3U con i nomi reali degli eventi
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
-            for i, link in enumerate(acestream_links, 1):
-                f.write(f"#EXTINF:-1,Evento {i}\n{link}\n")
+            for ln in links:
+                href = await ln.get_attribute("href")
+                # recupera il nome dell'evento (testo del nodo precedente o del link)
+                title = await ln.evaluate(
+                    "el => el.previousSibling && el.previousSibling.textContent.trim().length>0 ? el.previousSibling.textContent.trim() : el.textContent.trim()"
+                )
+                f.write(f"#EXTINF:-1,{title}\n{href}\n")
 
         print(f"[OK] Playlist salvata in {OUTPUT_FILE}")
         await browser.close()
