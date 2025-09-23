@@ -1,40 +1,42 @@
+#!/usr/bin/env python3
 import asyncio
+import re
 from playwright.async_api import async_playwright
 
+PLATIN_URL = "https://www.platinsport.com/link/23dinqxz/01.php"
+OUTPUT_FILE = "platinsport.m3u"
 ACE_LOCAL = "http://127.0.0.1:6878/ace/getstream?id="
 
 async def main():
-    m3u8_lines = ["#EXTM3U"]
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
-        await page.goto("https://www.platinsport.com/link/23dinqxz/01.php")
+        print("[INFO] Carico pagina dei canali Platinsport...")
+        await page.goto(PLATIN_URL, timeout=60000)
+        await page.wait_for_load_state("networkidle")
 
-        # Prendo tutto il contenuto testuale della pagina
         content = await page.inner_text("body")
         lines = content.splitlines()
 
-        current_match = None
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-            # Rilevo le righe con orario + partita
-            if len(line) > 5 and ":" in line and "vs" in line:
-                current_match = line
-                continue
-            # Rilevo i link AceStream
-            if "acestream://" in line and current_match:
-                ace_id = line.split("acestream://")[1].strip()
-                m3u8_lines.append(f'#EXTINF:-1 group-title="{current_match}",{line}')
-                m3u8_lines.append(f'{ACE_LOCAL}{ace_id}')
+        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+            f.write("#EXTM3U\n")
+            current_group = "Unknown Event"
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+                # match orario + vs
+                if re.match(r"\d{2}:\d{2} .+ vs .+", line):
+                    current_group = line
+                    continue
+                # match AceStream
+                if "acestream://" in line:
+                    content_id = line.split("acestream://")[1].strip()
+                    http_link = f"{ACE_LOCAL}{content_id}"
+                    f.write(f'#EXTINF:-1 group-title="{current_group}",{line}\n{http_link}\n')
 
+        print(f"[OK] Playlist M3U salvata: {OUTPUT_FILE}")
         await browser.close()
 
-    # Scrivo il file M3U
-    with open("platinsport.m3u", "w", encoding="utf-8") as f:
-        f.write("\n".join(m3u8_lines))
-
-    print("M3U playlist creata: platinsport.m3u")
-
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
