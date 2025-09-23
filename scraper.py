@@ -2,11 +2,11 @@
 """
 Platinsport scraper definitivo
 - Trova link bc.vc vicino agli eventi
-- Estrae correttamente il link diretto alla pagina /link/... dei canali AceStream
+- Estrae il link diretto alla pagina /link/... dei canali AceStream
 - Recupera tutti i link AceStream
 - Genera playlist M3U gerarchica:
-    - evento = group-title
-    - canali AceStream = sottogruppi
+    - gruppo = partita/evento
+    - canali = link AceStream
 """
 
 import asyncio
@@ -56,28 +56,35 @@ async def main():
         await page.goto(final_url, timeout=60000)
         await page.wait_for_load_state("networkidle")
 
-        # selezioniamo tutti i link AceStream nella pagina
-        links = await page.query_selector_all("a[href^='acestream://']")
-        if not links:
-            print("[ERRORE] Nessun link AceStream trovato")
+        # selezioniamo tutti gli elementi dentro il container principale (es. myDiv1)
+        container = await page.query_selector(".myDiv1")
+        if not container:
+            print("[ERRORE] Container principale non trovato")
             await browser.close()
             return
 
-        print(f"[INFO] Trovati {len(links)} link AceStream")
+        children = await container.query_selector_all(":scope > *")
+        if not children:
+            print("[ERRORE] Nessun elemento trovato nella pagina dei canali")
+            await browser.close()
+            return
 
-        # salva playlist M3U gerarchica
+        print("[INFO] Analizzo gli elementi per costruire playlist gerarchica...")
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
-            for ln in links:
-                href = await ln.get_attribute("href")
-                # titolo del canale (testo del link)
-                channel_title = await ln.evaluate("el => el.textContent.trim()")
-                # nome dell'evento = gruppo (testo del nodo precedente, o del link se non esiste)
-                group_title = await ln.evaluate(
-                    "el => el.previousSibling && el.previousSibling.textContent.trim().length>0 ? el.previousSibling.textContent.trim() : el.textContent.trim()"
-                )
-                # scrive #EXTINF con group-title
-                f.write(f'#EXTINF:-1 group-title="{group_title}",{channel_title}\n{href}\n')
+            current_group = "Unknown Event"
+            for el in children:
+                tag_name = await el.evaluate("e => e.tagName")
+                text = await el.evaluate("e => e.textContent.trim()")
+                if tag_name in ["STRONG", "H5", "DIV", "P"]:  # blocchi titolo partita
+                    if len(text) > 0:
+                        current_group = text
+                elif tag_name == "A":
+                    href = await el.get_attribute("href")
+                    if href and href.startswith("acestream://"):
+                        channel_title = text if len(text) > 0 else "Channel"
+                        # scrive #EXTINF con group-title
+                        f.write(f'#EXTINF:-1 group-title="{current_group}",{channel_title}\n{href}\n')
 
         print(f"[OK] Playlist gerarchica salvata in {OUTPUT_FILE}")
         await browser.close()
