@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Platinsport scraper definitivo - DEBUG
-- Cerca nella pagina solo gli eventi in formato "Squadra vs Squadra"
-- Stampa a video ciò che trova senza creare alcun file M3U
+Platinsport scraper debug
+- Cerca tutti gli eventi in formato partita
+- Non crea file M3U, stampa solo ciò che trova
+- Scopo: capire se il selettore funziona
 """
 
 import asyncio
-import re
 from playwright.async_api import async_playwright
 
 PLATIN_URL = "https://www.platinsport.com"
@@ -17,40 +17,30 @@ async def main():
         page = await browser.new_page()
         print("[INFO] Carico Platinsport...")
         await page.goto(PLATIN_URL, timeout=60000)
-        await page.wait_for_load_state("domcontentloaded")
+        await page.wait_for_load_state("networkidle")
 
-        # selezioniamo tutti gli elementi dentro il container principale (es. myDiv1)
-        container = await page.query_selector(".myDiv1")
+        # Prendi tutto il body invece di un container specifico
+        container = await page.query_selector("body")
         if not container:
-            print("[ERRORE] Container principale non trovato")
+            print("[ERRORE] Body non trovato")
             await browser.close()
             return
 
-        children = await container.query_selector_all(":scope > *")
-        if not children:
-            print("[ERRORE] Nessun elemento trovato nella pagina")
-            await browser.close()
-            return
+        children = await container.query_selector_all("*")
+        print(f"[INFO] Trovati {len(children)} elementi nella pagina")
 
-        print("[INFO] Cerco eventi in formato partita (Team1 vs Team2)...")
-
-        next_is_match = False
-
+        # Scansione elementi alla ricerca di testo in formato "orario Team1 vs Team2"
         for el in children:
-            text = (await el.evaluate("e => e.textContent")).strip()
-            tag_name = await el.evaluate("e => e.tagName")
-
-            # se trovi orario, la prossima riga potrebbe essere la partita
-            if tag_name == "TIME" and re.match(r"\d{1,2}:\d{2}", text):
-                next_is_match = True
-                continue
-
-            # se flag attivo e testo contiene "vs", allora è la partita
-            if next_is_match and "vs" in text:
-                print(f"[EVENTO TROVATO] {text}")
-                next_is_match = False
+            text = await el.evaluate("e => e.textContent.trim()")
+            # regex per catturare orario + partita tipo "20:45 Team1 vs Team2"
+            if text:
+                import re
+                match = re.match(r"(\d{1,2}:\d{2})\s+(.+vs.+)", text)
+                if match:
+                    print(f"[MATCH] {match.group(1)} {match.group(2)}")
 
         await browser.close()
+        print("[OK] Analisi completata")
 
 if __name__ == "__main__":
     asyncio.run(main())
