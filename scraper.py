@@ -1,99 +1,34 @@
 #!/usr/bin/env python3
 """
-Platinsport scraper definitivo
-- Trova link bc.vc vicino agli eventi
-- Estrae il link diretto alla pagina /link/... dei canali AceStream
-- Recupera tutti i link AceStream
-- Genera playlist M3U gerarchica con link HTTP per VLC/AceStream
-    - gruppo = partita/evento + orario + squadra vs squadra
-    - canali = link AceStream via HTTP locale
+Platinsport HTML Structure Printer
+- Estrae e stampa la struttura HTML della pagina specificata
 """
 
 import asyncio
-import re
 from playwright.async_api import async_playwright
 
-PLATIN_URL = "https://www.platinsport.com"
-OUTPUT_FILE = "platinsport.m3u"
-
-def get_direct_link(bcvc_url: str) -> str:
-    """Estrae il link diretto alla pagina /link/... dalla URL bc.vc"""
-    match = re.search(r"https?://www\.platinsport\.com/link/[^\s\"'>]+", bcvc_url)
-    if match:
-        return match.group(0)
-    return bcvc_url  # fallback
+PLATIN_URL = "https://www.platinsport.com/link/24werdqrx/01.php"
 
 async def main():
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(headless=True)  # Modalità headless
         page = await browser.new_page()
-        print("[INFO] Carico Platinsport...")
+        print("[INFO] Carico la pagina...")
         await page.goto(PLATIN_URL, timeout=60000)
         await page.wait_for_load_state("domcontentloaded")
 
-        # estrai tutti i link bc.vc dal DOM
+        # Estrai il contenuto della pagina
         content = await page.content()
-        bcvc_links = re.findall(r"https?://bc\.vc/[^\s\"'>]+", content)
+        
+        # Stampa l'intero contenuto HTML
+        print(content)  # Stampa l'intero contenuto HTML
 
-        if not bcvc_links:
-            print("[ERRORE] Nessun link bc.vc trovato")
-            await browser.close()
-            return
+        # Se vuoi esportare l'HTML in un file per l'analisi
+        with open("pagina.html", "w", encoding="utf-8") as f:
+            f.write(content)
 
-        bcvc_url = bcvc_links[0]
-        print(f"[INFO] Trovato link bc.vc: {bcvc_url}")
-
-        # estrai link diretto alla pagina dei canali AceStream
-        final_url = get_direct_link(bcvc_url)
-        print(f"[INFO] Link diretto alla pagina dei canali: {final_url}")
-
-        # apri la pagina /link/... e cerca AceStream
-        print("[INFO] Carico pagina finale e cerco link AceStream...")
-        await page.goto(final_url, timeout=60000)
-        await page.wait_for_load_state("networkidle")
-
-        # selezioniamo tutti gli elementi dentro il container principale (es. myDiv1)
-        container = await page.query_selector(".myDiv1")
-        if not container:
-            print("[ERRORE] Container principale non trovato")
-            await browser.close()
-            return
-
-        children = await container.query_selector_all(":scope > *")
-        if not children:
-            print("[ERRORE] Nessun elemento trovato nella pagina dei canali")
-            await browser.close()
-            return
-
-        print("[INFO] Analizzo gli elementi per costruire playlist gerarchica...")
-        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-            f.write("#EXTM3U\n")
-            current_group = "Unknown Event"
-
-            for el in children:
-                tag_name = await el.evaluate("e => e.tagName")
-                text = await el.evaluate("e => e.textContent.trim()")
-
-                # blocchi titolo partita/torneo
-                if tag_name in ["STRONG", "H5", "DIV", "P"]:
-                    if len(text) > 0:
-                        # controlla se il testo contiene orario + partita (es. 20:45 Team1 vs Team2)
-                        match = re.match(r"(\d{2}:\d{2})\s+(.+vs.+)", text)
-                        if match:
-                            current_group = f"{current_group} - {match.group(1)} {match.group(2)}"
-                        else:
-                            current_group = text
-
-                elif tag_name == "A":
-                    href = await el.get_attribute("href")
-                    if href and href.startswith("acestream://"):
-                        channel_title = text if len(text) > 0 else "Channel"
-                        content_id = href.replace("acestream://", "")
-                        http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
-                        f.write(f'#EXTINF:-1 group-title="{current_group}",{channel_title}\n{http_link}\n')
-
-        print(f"[OK] Playlist gerarchica salvata in {OUTPUT_FILE}")
         await browser.close()
 
 if __name__ == "__main__":
     asyncio.run(main())
+    
