@@ -57,10 +57,9 @@ async def main():
             await browser.close()
             return
 
-        # Estrai informazioni
-        matches = []
+        matches = {}  # Dizionario per memorizzare le partite e i canali
         children = await container.query_selector_all(":scope > *")
-        
+
         if not children:
             print("[ERRORE] Nessun elemento trovato nella pagina dei canali")
             await browser.close()
@@ -68,22 +67,28 @@ async def main():
 
         print("[INFO] Estrae i link e le partite...")
         
+        current_match = None  # Variabile per tenere traccia dell'ultima partita
+
         for el in children:
             tag_name = await el.evaluate("e => e.tagName")
             text = await el.evaluate("e => e.textContent.trim()")
 
-            # Estrai le partite
-            if tag_name == "P" and len(text) > 0:
-                match = re.search(r"(.+?)\s+vs\s+(.+)", text)
-                if match:
-                    match_info = {
-                        "team1": match.group(1).strip(),
-                        "team2": match.group(2).strip(),
-                        "time": await el.query_selector("time") or None
-                    }
-                    matches.append(match_info)
+            # Estrai il titolo della partita se il tag è <p>
+            if tag_name == "P":
+                if len(text) > 0:
+                    match = re.search(r"(.+?)\s+vs\s+(.+)", text)
+                    if match:
+                        team1 = match.group(1).strip()
+                        team2 = match.group(2).strip()
+                        
+                        # Recupera l'orario dalla tag <time>
+                        time_element = await el.query_selector("time")
+                        time_attr = await time_element.evaluate("e => e.getAttribute('datetime')") if time_element else None
+                        if time_attr:
+                            current_match = f"{time_attr} - {team1} vs {team2}"
+                            matches[current_match] = []  # Inizializza una lista per i canali
 
-            # Estrai i link AceStream
+            # Estrai i link AceStream se il tag è <A>
             elif tag_name == "A":
                 href = await el.get_attribute("href")
                 if href and href.startswith("acestream://"):
@@ -91,22 +96,16 @@ async def main():
                     content_id = href.replace("acestream://", "")
                     http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
                     
-                    # Aggiungi il link AceStream all'ultimo match trovato
-                    if matches:
-                        matches[-1].setdefault("channels", []).append((channel_title, http_link))
+                    # Aggiungi il canale all'ultima partita trovata
+                    if current_match:
+                        matches[current_match].append((channel_title, http_link))
 
         # Scrivi il file M3U
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
-            for match in matches:
-                if match["time"]:
-                    datetime = await match["time"].evaluate("e => e.getAttribute('datetime')")
-                    current_group = f"{datetime} - {match['team1']} vs {match['team2']}"
-                    
-                    if "channels" in match:
-                        for channel in match["channels"]:
-                            channel_title, http_link = channel
-                            f.write(f'#EXTINF:-1 group-title="{current_group}",{channel_title}\n{http_link}\n')
+            for match, channels in matches.items():
+                for channel_title, http_link in channels:
+                    f.write(f'#EXTINF:-1 group-title="{match}",{channel_title}\n{http_link}\n')
 
         print(f"[OK] Playlist gerarchica salvata in {OUTPUT_FILE}")
         await browser.close()
