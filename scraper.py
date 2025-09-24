@@ -73,10 +73,10 @@ async def main():
                 if tag_name in ["STRONG", "H5", "DIV", "P"]:
                     if len(text) > 0:
                         # controlla se il testo contiene orario + partita (es. 20:45 Team1 vs Team2)
-                        match = re.match(r"(\d{2}:\d{2})\s+(.+vs.+)", text)
+                        match = re.match(r"(\d{1,2}:\d{2})\s+(.+vs.+)", text)
                         if match:
                             current_group = f"{match.group(1)} {match.group(2)}"
-                            print(f"[INFO] Partita identificata: {current_group}")
+                            print(f"[INFO] Partita identificata: {current_group}")  # Debugging line
 
                 elif tag_name == "A":
                     href = await el.get_attribute("href")
@@ -84,8 +84,8 @@ async def main():
                         channel_title = text if len(text) > 0 else "Channel"
                         content_id = href.replace("acestream://", "")
                         http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
-                        
-                        # Scrivi i canali AceStream con riferimento alla partita corrente
+
+                        # Scrivi i canali AceStream con riferimento all'evento corrente
                         f.write(f'#EXTINF:-1 group-title="{current_group}",{channel_title}\n{http_link}\n')
 
         print(f"[OK] Playlist gerarchica salvata in {OUTPUT_FILE}")
