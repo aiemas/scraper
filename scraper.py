@@ -23,24 +23,24 @@ async def main():
         # Estrai il contenuto della pagina
         content = await page.content()
 
-        # Trova tutti i dettagli delle partite
-        eventi = re.findall(
+        # Troviamo tutte le partite con i relativi canali AceStream
+        partite = re.findall(
             r'<p>(.*?)</p>\s*<time datetime=".*?">(.*?)</time>\s*(.+?\svs\s.+?)\s*(.*?)<time', 
             content, re.DOTALL
         )
 
-        print(f"[DEBUG] Eventi trovati: {len(eventi)}")
+        print(f"[DEBUG] Partite trovate: {len(partite)}")
 
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
 
-            for evento in eventi:
-                competizione, orario, partita, canali = evento
+            for partita_info in partite:
+                competizione, orario, partita, canali = partita_info
                 competizione = competizione.strip()
                 orario = orario.strip()
                 partita = partita.strip()
 
-                # Debug: mostra i dettagli del evento
+                # Debug: mostra i dettagli della partita
                 print(f"[DEBUG] Competizione: {competizione}, Orario: {orario}, Partita: {partita}")
 
                 # Trova tutti i link AceStream nei canali
