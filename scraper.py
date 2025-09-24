@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Platinsport AceStream Scraper
-- Estrae le partite e tutti i relativi link AceStream
+- Estrae tutte le partite e relativi link AceStream
 - Genera una playlist M3U
 """
 
@@ -23,14 +23,16 @@ async def main():
         # Estrai il contenuto della pagina
         content = await page.content()
 
-        # Trova gli eventi delle partite
+        print("[INFO] Analizzando il contenuto della pagina...")
+
+        # Trova la competizione, l'orario e la partita usando regex più adattabili
         partite = re.findall(
-            r'<p>(.*?)</p>\s*<time datetime=".*?">(.*?)</time>\s*(.+? vs .+?)(.*?)<time', 
+            r'<p>(.*?)</p>\s*<time datetime=".*?">(.*?)</time>\s*(.+?\s+vs\s+.+?)\s*(.*?)<time', 
             content, re.DOTALL
         )
 
         print(f"[DEBUG] Partite trovate: {len(partite)}")
-        
+
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
 
