@@ -38,12 +38,14 @@ async def main():
                         partite_trovate.append(partita)
 
                         # Estrai i link AceStream dalla stessa sezione
-                        link_elements = await el.query_selector_all("a[href^='acestream://']")
-                        for link_el in link_elements:
-                            link_text = await link_el.evaluate("e => e.textContent")
-                            link_href = await link_el.get_attribute("href")
-                            if link_href:
-                                print(f"[INFO] Partita: {partita}, Link AceStream: {link_href} ({link_text})")
+                        # Ora guardiamo anche i tag <a> nei prossimi due elementi
+                        for j in range(i + 2, min(i + 4, len(children))):
+                            link_elements = await children[j].query_selector_all("a[href^='acestream://']")
+                            for link_el in link_elements:
+                                link_text = await link_el.evaluate("e => e.textContent")
+                                link_href = await link_el.get_attribute("href")
+                                if link_href:
+                                    print(f"[INFO] Partita: {partita}, Link AceStream: {link_href} ({link_text})")
 
         if partite_trovate:
             print("[OK] Partite trovate:")
