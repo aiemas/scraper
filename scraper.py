@@ -62,22 +62,21 @@ async def main():
             f.write("#EXTM3U\n")
 
             for el in children:
-                tag_name = await el.evaluate("e => e.tagName")
                 text = (await el.evaluate("e => e.textContent.trim()")).strip()
+                tag_name = await el.evaluate("e => e.tagName")
+                href = await el.get_attribute("href")
 
-                # se è la riga "xxx vs yyy" → nuovo gruppo
-                if "vs" in text and tag_name not in ("A", "TIME", "P"):
+                # 👇 indipendentemente dal tag, se contiene "vs" è la partita
+                if "vs" in text:
                     current_group = text
-                    continue
+                    print(f"[MATCH] Trovata partita: {current_group}")
 
-                # se è un link acestream → aggiungilo al gruppo corrente
-                if tag_name == "A":
-                    href = await el.get_attribute("href")
-                    if href and href.startswith("acestream://") and current_group:
-                        content_id = href.replace("acestream://", "")
-                        channel_title = text if text else "Channel"
-                        http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
-                        f.write(f'#EXTINF:-1 group-title="{current_group}",{channel_title}\n{http_link}\n')
+                # 👇 se è un link acestream, lo aggiungo sotto l’ultimo gruppo trovato
+                if href and href.startswith("acestream://") and current_group:
+                    content_id = href.replace("acestream://", "")
+                    channel_title = text if text else "Channel"
+                    http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
+                    f.write(f'#EXTINF:-1 group-title="{current_group}",{channel_title}\n{http_link}\n')
 
         print(f"[OK] Playlist salvata in {OUTPUT_FILE}")
         await browser.close()
