@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Platinsport scraper debug
+Platinsport scraper debug con link AceStream
 - Stampa a video tutte le partite trovate nella pagina
+- Stampa anche i link AceStream per ciascuna partita
 - Non crea file M3U
 """
 
@@ -25,8 +26,9 @@ async def main():
 
         partite_trovate = []
 
-        # Itera sugli elementi e cerca pattern "orario" seguito da "Squadra vs Squadra"
-        for i, el in enumerate(children):
+        i = 0
+        while i < len(children):
+            el = children[i]
             text = (await el.evaluate("e => e.textContent")).strip()
             # cerca righe con orario
             match_time = re.match(r"(\d{1,2}:\d{2})\s*(.*)", text)
@@ -36,12 +38,35 @@ async def main():
                     next_text = (await children[i + 1].evaluate("e => e.textContent")).strip()
                     if "vs" in next_text:
                         partita = f"{match_time.group(1)} {next_text}"
-                        partite_trovate.append(partita)
+                        links = []
+                        # scorri avanti per trovare tutti i link AceStream relativi a questa partita
+                        j = i + 2
+                        while j < len(children):
+                            next_el = children[j]
+                            next_tag = await next_el.evaluate("e => e.tagName")
+                            next_href = await next_el.get_attribute("href") if next_tag == "A" else None
+                            next_text2 = (await next_el.evaluate("e => e.textContent")).strip()
+                            # se trovi un'altra partita, fermati
+                            if re.match(r"\d{1,2}:\d{2}", next_text2) and "vs" in next_text2:
+                                break
+                            if next_href and next_href.startswith("acestream://"):
+                                content_id = next_href.replace("acestream://", "")
+                                http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
+                                links.append(http_link)
+                            j += 1
+                        partite_trovate.append((partita, links))
+                        i = j - 1  # salta al prossimo elemento dopo i link
+            i += 1
 
         if partite_trovate:
-            print("[OK] Partite trovate:")
-            for p in partite_trovate:
-                print(p)
+            print("[OK] Partite e link trovati:")
+            for p, lks in partite_trovate:
+                print(f"\n{p}")
+                if lks:
+                    for lk in lks:
+                        print(f"  {lk}")
+                else:
+                    print("  Nessun link AceStream trovato")
         else:
             print("[INFO] Nessuna partita trovata")
 
