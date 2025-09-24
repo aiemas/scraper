@@ -4,8 +4,8 @@ Platinsport scraper definitivo
 - Trova link bc.vc vicino agli eventi
 - Estrae il link diretto alla pagina /link/... dei canali AceStream
 - Recupera tutti i link AceStream
-- Genera playlist M3U gerarchica con link HTTP per VLC/AceStream
-    - gruppo = partita/evento + orario + squadra vs squadra
+- Genera playlist M3U con:
+    - gruppo = orario + partita (es. "20:45 TeamA vs TeamB")
     - canali = link AceStream via HTTP locale
 """
 
@@ -31,6 +31,7 @@ async def main():
         await page.goto(PLATIN_URL, timeout=60000)
         await page.wait_for_load_state("domcontentloaded")
 
+        # estrai tutti i link bc.vc dal DOM
         content = await page.content()
         bcvc_links = re.findall(r"https?://bc\.vc/[^\s\"'>]+", content)
 
@@ -42,13 +43,16 @@ async def main():
         bcvc_url = bcvc_links[0]
         print(f"[INFO] Trovato link bc.vc: {bcvc_url}")
 
+        # estrai link diretto alla pagina dei canali AceStream
         final_url = get_direct_link(bcvc_url)
         print(f"[INFO] Link diretto alla pagina dei canali: {final_url}")
 
+        # apri la pagina /link/... e cerca AceStream
         print("[INFO] Carico pagina finale e cerco link AceStream...")
         await page.goto(final_url, timeout=60000)
         await page.wait_for_load_state("networkidle")
 
+        # selezioniamo tutti gli elementi dentro il container principale
         container = await page.query_selector(".myDiv1")
         if not container:
             print("[ERRORE] Container principale non trovato")
@@ -61,7 +65,7 @@ async def main():
             await browser.close()
             return
 
-        print("[INFO] Analizzo gli elementi per costruire playlist gerarchica...")
+        print("[INFO] Analizzo gli elementi per costruire playlist M3U...")
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
             current_group = "Unknown Event"
@@ -70,16 +74,18 @@ async def main():
                 tag_name = await el.evaluate("e => e.tagName")
                 text = await el.evaluate("e => e.textContent.trim()")
 
-                # blocchi titolo partita/torneo
+                # 👇 blocchi titolo partita/torneo
                 if tag_name in ["STRONG", "H5", "DIV", "P"]:
                     if len(text) > 0:
-                        # 👇 se c'è orario + partita, prendilo come gruppo
+                        # se c'è orario + partita, usalo come gruppo
                         match = re.match(r"(\d{1,2}:\d{2})\s+(.+vs.+)", text)
                         if match:
                             current_group = f"{match.group(1)} {match.group(2)}"
+                            print(f"[GROUP] Nuovo gruppo: {current_group}")
                         else:
                             current_group = text
 
+                # 👇 link AceStream
                 elif tag_name == "A":
                     href = await el.get_attribute("href")
                     if href and href.startswith("acestream://"):
@@ -88,7 +94,7 @@ async def main():
                         http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
                         f.write(f'#EXTINF:-1 group-title="{current_group}",{channel_title}\n{http_link}\n')
 
-        print(f"[OK] Playlist gerarchica salvata in {OUTPUT_FILE}")
+        print(f"[OK] Playlist salvata in {OUTPUT_FILE}")
         await browser.close()
 
 if __name__ == "__main__":
