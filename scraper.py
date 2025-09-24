@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-Platinsport scraper
-- Estrae i blocchi partite da /link/...
-- Usa come gruppo SOLO la riga con 'vs' (es: "Midtjylland vs Sturm Graz")
+Platinsport scraper corretto
+- Gruppo = nome della partita (es: "Midtjylland vs Sturm Graz")
 - Aggiunge tutti i link AceStream a quel gruppo
-- Genera un file M3U leggibile da VLC
+- Genera file M3U funzionante
 """
 
 import asyncio
@@ -15,67 +14,50 @@ PLATIN_URL = "https://www.platinsport.com"
 OUTPUT_FILE = "platinsport.m3u"
 
 
-def get_direct_link(bcvc_url: str) -> str:
-    """Estrae il link diretto alla pagina /link/... dalla URL bc.vc"""
-    match = re.search(r"https?://www\.platinsport\.com/link/[^\s\"'>]+", bcvc_url)
-    if match:
-        return match.group(0)
-    return bcvc_url
-
-
 async def main():
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
         print("[INFO] Carico Platinsport...")
         await page.goto(PLATIN_URL, timeout=60000)
-        await page.wait_for_load_state("domcontentloaded")
-
-        content = await page.content()
-        bcvc_links = re.findall(r"https?://bc\.vc/[^\s\"'>]+", content)
-        if not bcvc_links:
-            print("[ERRORE] Nessun link bc.vc trovato")
-            await browser.close()
-            return
-
-        bcvc_url = bcvc_links[0]
-        final_url = get_direct_link(bcvc_url)
-        print(f"[INFO] Pagina link diretta: {final_url}")
-
-        await page.goto(final_url, timeout=60000)
         await page.wait_for_load_state("networkidle")
 
-        container = await page.query_selector(".myDiv1")
-        if not container:
-            print("[ERRORE] Container non trovato")
+        # Aspetto che compaiano i link AceStream
+        await page.wait_for_selector("a[href^='acestream://']", timeout=30000)
+
+        # Prendo tutti i link AceStream
+        ace_links = await page.query_selector_all("a[href^='acestream://']")
+        if not ace_links:
+            print("[ERRORE] Nessun link AceStream trovato")
             await browser.close()
             return
 
-        children = await container.query_selector_all(":scope > *")
-        if not children:
-            print("[ERRORE] Nessun elemento figlio trovato")
-            await browser.close()
-            return
-
-        current_group = None
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
 
-            for el in children:
-                text = (await el.evaluate("e => e.textContent.trim()")).strip()
-                href = await el.get_attribute("href")
+            for link in ace_links:
+                href = await link.get_attribute("href")
+                text = (await link.evaluate("e => e.textContent")).strip()
 
-                # 👇 indipendentemente dal tag, se contiene "vs" è la partita
-                if "vs" in text:
-                    current_group = text
-                    print(f"[MATCH] Trovata partita: {current_group}")
+                # Cerco il testo della partita più vicino al link
+                parent_text = await link.evaluate("""
+                    e => {
+                        let el = e.parentElement;
+                        while(el){
+                            if(el.textContent && el.textContent.includes("vs")){
+                                return el.textContent.trim();
+                            }
+                            el = el.parentElement;
+                        }
+                        return "Unknown Match";
+                    }
+                """)
+                group_name = parent_text
+                channel_title = text if text else "Channel"
 
-                # 👇 se è un link acestream, lo aggiungo sotto l’ultimo gruppo trovato
-                if href and href.startswith("acestream://") and current_group:
-                    content_id = href.replace("acestream://", "")
-                    channel_title = text if text else "Channel"
-                    http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
-                    f.write(f'#EXTINF:-1 group-title="{current_group}",{channel_title}\n{http_link}\n')
+                content_id = href.replace("acestream://", "")
+                http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
+                f.write(f'#EXTINF:-1 group-title="{group_name}",{channel_title}\n{http_link}\n')
 
         print(f"[OK] Playlist salvata in {OUTPUT_FILE}")
         await browser.close()
