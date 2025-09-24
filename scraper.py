@@ -10,7 +10,7 @@ import re
 from playwright.async_api import async_playwright
 
 PLATIN_URL = "https://www.platinsport.com"
-OUTPUT_FILE = "platinsport_first_event.m3u"
+OUTPUT_FILE = "platinsport.m3u"  # Usa il nome originale
 
 def get_direct_link(bcvc_url: str) -> str:
     """Estrae il link diretto alla pagina /link/... dalla URL bc.vc"""
@@ -105,7 +105,7 @@ async def main():
                 for channel_title, http_link in channels:
                     f.write(f'#EXTINF:-1 group-title="{first_event}",{channel_title}\n{http_link}\n')
 
-        print(f"[OK] Playlist per il primo evento salvata in {OUTPUT_FILE}")
+        print(f"[OK] Playlist salvata in {OUTPUT_FILE}")
         await browser.close()
 
 if __name__ == "__main__":
