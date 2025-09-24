@@ -80,11 +80,8 @@ async def main():
                         # controlla se il testo contiene orario + partita (es. 20:45 Team1 vs Team2)
                         match = re.match(r"(\d{2}:\d{2})\s+(.+vs.+)", text)
                         if match:
-                            # Modifica qui per settare current_group con l'orario e le squadre
-                            current_group = f"{match.group(1)} - {match.group(2)}"  # Uso solo l'orario e le squadre
-                        else:
-                            # Ignora i nomi delle competizioni
-                            continue  # Salta il resto del ciclo se non c'è un match
+                            # Aggiorna current_group con orario e partita
+                            current_group = f"{match.group(1)} - {match.group(2)}"
 
                 elif tag_name == "A":
                     href = await el.get_attribute("href")
