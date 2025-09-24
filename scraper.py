@@ -71,7 +71,7 @@ async def main():
         print("[INFO] Estrae il primo evento...")
         
         # Itera sugli elementi e cattura il primo evento
-        for el in children:
+        for idx, el in enumerate(children):
             tag_name = await el.evaluate("e => e.tagName")
             text = await el.evaluate("e => e.textContent.trim()")
 
@@ -79,19 +79,18 @@ async def main():
             if tag_name == "P":
                 # Estrai l'informazione sulla competizione
                 league_info = text.strip()  # Nome della lega o competizione
-
+            
             # Estrai titolo partita e orario
-            if tag_name == "TIME":
-                if children.index(el) > 0:  # Assicurati di essere dopo di un tag <p>
-                    # Trovare la partita prima di questo elemento
-                    match = re.search(r"(.+?)\s+vs\s+(.+)", children[children.index(el) - 1].text_content())
-                    if match:
-                        team1 = match.group(1).strip()
-                        team2 = match.group(2).strip()
-                        datetime = await el.evaluate("e => e.getAttribute('datetime')")
+            if tag_name == "TIME" and idx > 0:  # Assicurati di essere dopo un <p>
+                # Trovare la partita nel tag <p> precedente
+                match = re.search(r"(.+?)\s+vs\s+(.+)", await children[idx - 1].evaluate("e => e.textContent"))
+                if match:
+                    team1 = match.group(1).strip()
+                    team2 = match.group(2).strip()
+                    datetime = await el.evaluate("e => e.getAttribute('datetime')")
 
-                        # Raccogli informazioni sull'evento
-                        first_event = f"{datetime} - {league_info}: {team1} vs {team2}"
+                    # Raccogli informazioni sull'evento
+                    first_event = f"{datetime} - {league_info}: {team1} vs {team2}"
 
             # Estrai i canali AceStream associati a questo evento
             if tag_name == "A" and first_event:
