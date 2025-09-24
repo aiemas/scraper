@@ -68,20 +68,26 @@ async def main():
         print("[INFO] Analizzo gli elementi per costruire playlist gerarchica...")
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
-            current_group = None  # Cambiato da "Unknown Event" a None
+            current_group = None  # Inizializziamo come None
 
             for el in children:
                 tag_name = await el.evaluate("e => e.tagName")
                 text = await el.evaluate("e => e.textContent.trim()")
 
                 # blocchi titolo partita/torneo
-                if tag_name in ["STRONG", "H5", "DIV", "P"]:
+                if tag_name == "P":
+                    # Se il tag è P, potrebbe contenere il titolo della partita
                     if len(text) > 0:
-                        # controlla se il testo contiene orario + partita (es. 20:45 Team1 vs Team2)
-                        match = re.match(r"(\d{2}:\d{2})\s+(.+vs.+)", text)
+                        match = re.search(r"(.+?)\s+vs\s+(.+)", text)
                         if match:
-                            # Aggiorna current_group con orario e partita
-                            current_group = f"{match.group(1)} - {match.group(2)}"
+                            # Prendiamo la partita
+                            team1 = match.group(1).strip()
+                            team2 = match.group(2).strip()
+
+                            # Recuperiamo anche l'orario se disponibile
+                            time_element = await el.query_selector("time")
+                            datetime = await time_element.evaluate("e => e.getAttribute('datetime')") if time_element else None
+                            current_group = f"{datetime} - {team1} vs {team2}" if datetime else f"{team1} vs {team2}"
 
                 elif tag_name == "A":
                     href = await el.get_attribute("href")
