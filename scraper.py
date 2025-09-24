@@ -69,22 +69,27 @@ async def main():
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
             current_group = "Unknown Event"
+            buffer_count = 0  # contatore per leggere il nome della partita 3 righe dopo competizione
 
             for el in children:
                 tag_name = await el.evaluate("e => e.tagName")
-                text = await el.evaluate("e => e.textContent.trim()")
+                text = (await el.evaluate("e => e.textContent")).strip()
 
-                # blocchi titolo partita/torneo
-                if tag_name in ["STRONG", "H5", "DIV", "P"]:
-                    if len(text) > 0:
-                        # controlla se il testo contiene orario + partita (es. 20:45 Team1 vs Team2)
-                        match = re.match(r"(\d{2}:\d{2})\s+(.+vs.+)", text)
-                        if match:
-                            current_group = f"{current_group} - {match.group(1)} {match.group(2)}"
-                        else:
-                            current_group = text
+                # logica per prendere il nome della partita 3 righe dopo competizione
+                if buffer_count > 0:
+                    buffer_count -= 1
+                    if buffer_count == 0:
+                        current_group = text
+                        print(f"[GROUP] Nuovo gruppo: {current_group}")
+                        continue
 
-                elif tag_name == "A":
+                # se trovi competizione, prepara a leggere 3 righe dopo
+                if tag_name == "P" and "League" in text:
+                    buffer_count = 3
+                    continue
+
+                # se è un link AceStream, aggiungi alla playlist
+                if tag_name == "A":
                     href = await el.get_attribute("href")
                     if href and href.startswith("acestream://"):
                         channel_title = text if len(text) > 0 else "Channel"
