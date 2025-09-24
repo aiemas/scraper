@@ -23,11 +23,9 @@ async def main():
         # Estrai il contenuto della pagina
         content = await page.content()
 
-        print("[INFO] Analizzando il contenuto della pagina...")
-
-        # Trova la competizione, l'orario e la partita usando regex più adattabili
+        # Seleziona tutte le righe dei giochi nella div contenente gli eventi
         partite = re.findall(
-            r'<p>(.*?)</p>\s*<time datetime=".*?">(.*?)</time>\s*(.+?\s+vs\s+.+?)\s*(.*?)<time', 
+            r'<p>(.*?)</p>\s*<time datetime=".*?">(.*?)</time>\s*(.+?\svs\s.+?)\s*(.*?)<time', 
             content, re.DOTALL
         )
 
