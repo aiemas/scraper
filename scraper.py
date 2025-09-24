@@ -61,42 +61,32 @@ async def main():
         channels = []
         first_event = None
 
+        # Estrai i tuoi eventi e i canali
         children = await container.query_selector_all(":scope > *")
-
-        if not children:
-            print("[ERRORE] Nessun elemento trovato nella pagina dei canali")
-            await browser.close()
-            return
-
         print("[INFO] Estrae il primo evento...")
         
-        # Itera sugli elementi e cattura il primo evento
         for idx, el in enumerate(children):
             tag_name = await el.evaluate("e => e.tagName")
             text = await el.evaluate("e => e.textContent.trim()")
 
-            # Controlla se il tag è <p> e verifica il formato
+            # Estrai il nome della competizione
             if tag_name == "P":
-                # Estrai l'informazione sulla competizione
                 league_info = text.strip()  # Nome della lega o competizione
-            
-            # Estrai titolo partita e orario
+
+            # Estrai la data e il titolo della partita
             if tag_name == "TIME" and idx > 0:  # Assicurati di essere dopo un <p>
-                # Trovare la partita nel tag <p> precedente
                 match = re.search(r"(.+?)\s+vs\s+(.+)", await children[idx - 1].evaluate("e => e.textContent"))
                 if match:
                     team1 = match.group(1).strip()
                     team2 = match.group(2).strip()
                     datetime = await el.evaluate("e => e.getAttribute('datetime')")
-
-                    # Raccogli informazioni sull'evento
                     first_event = f"{datetime} - {league_info}: {team1} vs {team2}"
 
             # Estrai i canali AceStream associati a questo evento
             if tag_name == "A" and first_event:
                 href = await el.get_attribute("href")
                 if href and href.startswith("acestream://"):
-                    channel_title = text if len(text) > 0 else "Channel"
+                    channel_title = text.strip()
                     content_id = href.replace("acestream://", "")
                     http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
                     channels.append((channel_title, http_link))
