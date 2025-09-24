@@ -68,7 +68,6 @@ async def main():
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
 
-            # variabili per tracciare orario e partita corrente
             current_time = None
             current_match = None
             current_group = "Unknown Event"
@@ -81,30 +80,28 @@ async def main():
                     # prendi l’orario dal datetime dell’elemento time
                     dt = await el.get_attribute("datetime")
                     if dt and len(dt) >= 16:
-                        # “2025-09-24T16:45:00Z” → pos 11:16 è “16:45”
-                        current_time = dt[11:16]
+                        current_time = dt[11:16]  # es. "20:45"
                     else:
                         current_time = None
 
-                elif tag_name in ["DIV", "P", "STRONG", "H5"]:
-                    # qui potremmo avere “Midtjylland vs Sturm Graz” o il nome della lega
-                    if "vs" in text:
-                        # è probabilmente la linea partita
-                        current_match = text
-                        # solo se ho sia orario che partita, aggiorno il gruppo
-                        if current_time and current_match:
-                            current_group = f"{current_time} {current_match}"
+                # se troviamo "vs" → sicuramente è la riga della partita
+                if "vs" in text:
+                    current_match = text
+                    if current_time:
+                        current_group = f"{current_time} {current_match}"
+                    else:
+                        current_group = current_match
 
-                elif tag_name == "A":
+                # link AceStream
+                if tag_name == "A":
                     href = await el.get_attribute("href")
                     if href and href.startswith("acestream://"):
-                        channel_title = text if len(text) > 0 else "Channel"
+                        channel_title = text if text else "Channel"
                         content_id = href.replace("acestream://", "")
                         http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
-                        # scrivi nella playlist con gruppo uguale a orario+partita
                         f.write(f'#EXTINF:-1 group-title="{current_group}",{channel_title}\n{http_link}\n')
 
-        print(f"[OK] Playlist gerarchica salvata in {OUTPUT_FILE}")
+        print(f"[OK] Playlist salvata in {OUTPUT_FILE}")
         await browser.close()
 
 if __name__ == "__main__":
