@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Platinsport scraper definitivo
+Platinsport scraper definitivo (solo stampa a video)
 - Trova link bc.vc vicino agli eventi
 - Estrae il link diretto alla pagina /link/... dei canali AceStream
-- Recupera tutti i link AceStream per ogni partita
-- Stampa a video senza creare file M3U
+- Recupera tutti i link AceStream
+- Stampa a video partita + link AceStream
 """
 
 import asyncio
@@ -49,7 +49,7 @@ async def main():
         await page.goto(final_url, timeout=60000)
         await page.wait_for_load_state("networkidle")
 
-        # selezioniamo tutti gli elementi dentro il container principale (es. myDiv1)
+        # selezioniamo tutti gli elementi dentro il container principale
         container = await page.query_selector(".myDiv1")
         if not container:
             print("[ERRORE] Container principale non trovato")
@@ -59,37 +59,35 @@ async def main():
         children = await container.query_selector_all(":scope > *")
         print(f"[INFO] Trovati {len(children)} elementi nella pagina")
 
-        # Analisi delle partite
+        current_match = None
         matches_found = []
-        for i, el in enumerate(children):
+
+        for el in children:
             text = await el.evaluate("e => e.textContent.trim()")
             tag_name = await el.evaluate("e => e.tagName")
 
-            # Controlla se è una partita (orario + vs)
+            # Controlla se il testo è una partita (orario + squadra vs squadra)
             match = re.match(r"(\d{1,2}:\d{2})\s+(.+vs.+)", text)
             if match:
-                time = match.group(1)
-                match_name = match.group(2)
-                current_match = f"{time} {match_name}"
+                current_match = f"{match.group(1)} {match.group(2)}"
+                matches_found.append((current_match, []))
+                continue
 
-                # Cerca tutti i link AceStream dentro lo stesso blocco
-                ace_links = await el.query_selector_all("a[href^='acestream://']")
-                http_links = []
-                for a in ace_links:
-                    href = await a.get_attribute("href")
-                    if href:
-                        content_id = href.replace("acestream://", "")
-                        http_links.append(f"http://127.0.0.1:6878/ace/getstream?id={content_id}")
+            # Se è un link AceStream e c'è già una partita corrente
+            if tag_name == "A" and current_match:
+                href = await el.get_attribute("href")
+                if href and href.startswith("acestream://"):
+                    content_id = href.replace("acestream://", "")
+                    http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
+                    matches_found[-1][1].append(http_link)
 
-                matches_found.append((current_match, http_links))
-
-        # Stampa risultati
+        # Stampa a video tutte le partite con i link AceStream
         print("[OK] Partite e link trovati:")
         for match, links in matches_found:
             print(match)
             if links:
-                for l in links:
-                    print(f"  {l}")
+                for link in links:
+                    print(f"  {link}")
             else:
                 print("  Nessun link AceStream trovato")
 
