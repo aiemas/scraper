@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Platinsport scraper debug con link AceStream
-- Stampa a video tutte le partite trovate nella pagina
-- Stampa anche i link AceStream per ciascuna partita
-- Non crea file M3U
+Platinsport scraper definitivo
+- Trova link bc.vc vicino agli eventi
+- Estrae il link diretto alla pagina /link/... dei canali AceStream
+- Recupera tutti i link AceStream per ogni partita
+- Stampa a video senza creare file M3U
 """
 
 import asyncio
@@ -11,6 +12,13 @@ import re
 from playwright.async_api import async_playwright
 
 PLATIN_URL = "https://www.platinsport.com"
+
+def get_direct_link(bcvc_url: str) -> str:
+    """Estrae il link diretto alla pagina /link/... dalla URL bc.vc"""
+    match = re.search(r"https?://www\.platinsport\.com/link/[^\s\"'>]+", bcvc_url)
+    if match:
+        return match.group(0)
+    return bcvc_url  # fallback
 
 async def main():
     async with async_playwright() as p:
@@ -20,55 +28,70 @@ async def main():
         await page.goto(PLATIN_URL, timeout=60000)
         await page.wait_for_load_state("domcontentloaded")
 
-        # Prendi tutti gli elementi della pagina
-        children = await page.query_selector_all("body *")
+        # estrai tutti i link bc.vc dal DOM
+        content = await page.content()
+        bcvc_links = re.findall(r"https?://bc\.vc/[^\s\"'>]+", content)
+
+        if not bcvc_links:
+            print("[ERRORE] Nessun link bc.vc trovato")
+            await browser.close()
+            return
+
+        bcvc_url = bcvc_links[0]
+        print(f"[INFO] Trovato link bc.vc: {bcvc_url}")
+
+        # estrai link diretto alla pagina dei canali AceStream
+        final_url = get_direct_link(bcvc_url)
+        print(f"[INFO] Link diretto alla pagina dei canali: {final_url}")
+
+        # apri la pagina /link/... e cerca AceStream
+        print("[INFO] Carico pagina finale e cerco link AceStream...")
+        await page.goto(final_url, timeout=60000)
+        await page.wait_for_load_state("networkidle")
+
+        # selezioniamo tutti gli elementi dentro il container principale (es. myDiv1)
+        container = await page.query_selector(".myDiv1")
+        if not container:
+            print("[ERRORE] Container principale non trovato")
+            await browser.close()
+            return
+
+        children = await container.query_selector_all(":scope > *")
         print(f"[INFO] Trovati {len(children)} elementi nella pagina")
 
-        partite_trovate = []
+        # Analisi delle partite
+        matches_found = []
+        for i, el in enumerate(children):
+            text = await el.evaluate("e => e.textContent.trim()")
+            tag_name = await el.evaluate("e => e.tagName")
 
-        i = 0
-        while i < len(children):
-            el = children[i]
-            text = (await el.evaluate("e => e.textContent")).strip()
-            # cerca righe con orario
-            match_time = re.match(r"(\d{1,2}:\d{2})\s*(.*)", text)
-            if match_time:
-                # prova a leggere la riga successiva
-                if i + 1 < len(children):
-                    next_text = (await children[i + 1].evaluate("e => e.textContent")).strip()
-                    if "vs" in next_text:
-                        partita = f"{match_time.group(1)} {next_text}"
-                        links = []
-                        # scorri avanti per trovare tutti i link AceStream relativi a questa partita
-                        j = i + 2
-                        while j < len(children):
-                            next_el = children[j]
-                            next_tag = await next_el.evaluate("e => e.tagName")
-                            next_href = await next_el.get_attribute("href") if next_tag == "A" else None
-                            next_text2 = (await next_el.evaluate("e => e.textContent")).strip()
-                            # se trovi un'altra partita, fermati
-                            if re.match(r"\d{1,2}:\d{2}", next_text2) and "vs" in next_text2:
-                                break
-                            if next_href and next_href.startswith("acestream://"):
-                                content_id = next_href.replace("acestream://", "")
-                                http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
-                                links.append(http_link)
-                            j += 1
-                        partite_trovate.append((partita, links))
-                        i = j - 1  # salta al prossimo elemento dopo i link
-            i += 1
+            # Controlla se è una partita (orario + vs)
+            match = re.match(r"(\d{1,2}:\d{2})\s+(.+vs.+)", text)
+            if match:
+                time = match.group(1)
+                match_name = match.group(2)
+                current_match = f"{time} {match_name}"
 
-        if partite_trovate:
-            print("[OK] Partite e link trovati:")
-            for p, lks in partite_trovate:
-                print(f"\n{p}")
-                if lks:
-                    for lk in lks:
-                        print(f"  {lk}")
-                else:
-                    print("  Nessun link AceStream trovato")
-        else:
-            print("[INFO] Nessuna partita trovata")
+                # Cerca tutti i link AceStream dentro lo stesso blocco
+                ace_links = await el.query_selector_all("a[href^='acestream://']")
+                http_links = []
+                for a in ace_links:
+                    href = await a.get_attribute("href")
+                    if href:
+                        content_id = href.replace("acestream://", "")
+                        http_links.append(f"http://127.0.0.1:6878/ace/getstream?id={content_id}")
+
+                matches_found.append((current_match, http_links))
+
+        # Stampa risultati
+        print("[OK] Partite e link trovati:")
+        for match, links in matches_found:
+            print(match)
+            if links:
+                for l in links:
+                    print(f"  {l}")
+            else:
+                print("  Nessun link AceStream trovato")
 
         await browser.close()
 
