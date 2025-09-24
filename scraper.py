@@ -23,38 +23,33 @@ async def main():
         # Estrai il contenuto della pagina
         content = await page.content()
 
-        # Troviamo tutti i dettagli delle partite
-        eventi = re.findall(
-            r'(<p>(.*?)</p>\s*<time datetime=".*?">(.*?)</time>\s*(.+?\svs\s.+?)\s*(.*?)<time)', 
-            content, re.DOTALL
-        )
+        # Troviamo ogni blocco di eventi che inizia con <p> e contiene le informazioni delle partite.
+        partite_block = re.findall(r'<p>(.*?)</p>\s*<time datetime=".*?">(.*?)</time>.*?<time', content, re.DOTALL)
 
-        print(f"[DEBUG] Eventi trovati: {len(eventi)}")
+        print(f"[DEBUG] Partite trovate: {len(partite_block)}")
 
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
 
-            # Iteriamo su tutti gli eventi
-            for partita_info in eventi:
-                header, competizione, orario, partita, canali = partita_info
-                competizione = competizione.strip()
-                orario = orario.strip()
-                partita = partita.strip()
+            for partita_info in partite_block:
+                competizione = partita_info[0].strip()
+                orario = partita_info[1].strip()
 
-                # Debug: mostra i dettagli della partita
-                print(f"[DEBUG] Competizione: {competizione}, Orario: {orario}, Partita: {partita}")
-
-                # Trova tutti i link AceStream nei canali
-                link_regex = r'<a href="(acestream://.*?)" rel="nofollow">(.*?)</a>'
-                links = re.findall(link_regex, canali)
-
-                if not links:  # Se non ci sono link, non scrivere
-                    print(f"[WARNING] Nessun link AceStream trovato per {partita}")
-                    continue
-
-                # Scrive ogni link AceStream nel file M3U
-                for ace_link, channel_title in links:
-                    f.write(f'#EXTINF:-1 group-title="{competizione} - {partita} ({orario})", {channel_title.strip()}\n{ace_link}\n')
+                # Trova la partita e i relativi canali
+                partita_match = re.search(r'(.+?\svs\s.+?)\s*<a href=', competizione)
+                if partita_match:
+                    partita = partita_match.group(1)
+                    
+                    # Trova i canali
+                    canali_match = re.findall(r'<a href="(acestream://.*?)" rel="nofollow">(.*?)</a>', content)
+                    
+                    if not canali_match:  # Se non ci sono canali, non scrivere
+                        print(f"[WARNING] Nessun link AceStream trovato per {partita}")
+                        continue
+                    
+                    # Scrivi ogni link AceStream nel file M3U
+                    for ace_link, channel_title in canali_match:
+                        f.write(f'#EXTINF:-1 group-title="{competizione} - {partita} ({orario})", {channel_title.strip()}\n{ace_link}\n')
 
         print(f"[OK] Playlist salvata in {OUTPUT_FILE}")
         await browser.close()
