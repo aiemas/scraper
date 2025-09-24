@@ -68,7 +68,7 @@ async def main():
         print("[INFO] Analizzo gli elementi per costruire playlist gerarchica...")
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
-            current_group = "Unknown Event"
+            current_group = None  # Cambiato da "Unknown Event" a None
 
             for el in children:
                 tag_name = await el.evaluate("e => e.tagName")
@@ -89,7 +89,12 @@ async def main():
                         channel_title = text if len(text) > 0 else "Channel"
                         content_id = href.replace("acestream://", "")
                         http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
-                        f.write(f'#EXTINF:-1 group-title="{current_group}",{channel_title}\n{http_link}\n')
+                        
+                        # Scrivere solo se current_group è stato definito
+                        if current_group:
+                            f.write(f'#EXTINF:-1 group-title="{current_group}",{channel_title}\n{http_link}\n')
+                        else:
+                            print("[WARNING] Nessun gruppo trovato per il canale: {channel_title}")
 
         print(f"[OK] Playlist gerarchica salvata in {OUTPUT_FILE}")
         await browser.close()
