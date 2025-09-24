@@ -53,7 +53,7 @@ async def main():
             await browser.close()
             return
 
-        # Debug: Estrai e mostra il contenuto grezzo della sezione eventi
+        # Stampa il contenuto grezzo della sezione eventi per il debug
         content_div = await container.evaluate("e => e.innerHTML")
         print("[DEBUG] Contenuto della sezione eventi:\n", content_div)
 
@@ -75,37 +75,37 @@ async def main():
             tag_name = await el.evaluate("e => e.tagName")
             text = await el.evaluate("e => e.textContent.trim()")
 
-            # Estrai titolo partita e orario
+            # Controlla se il tag è <p> e verifica il formato
             if tag_name == "P":
-                match = re.search(r"(.+?)\s+vs\s+(.+)", text)
-                if match:
-                    team1 = match.group(1).strip()
-                    team2 = match.group(2).strip()
+                # Estrai l'informazione sulla competizione
+                league_info = text.strip()  # Nome della lega o competizione
 
-                    # Recupera l'orario dalla tag <time>
-                    time_element = await el.query_selector("time")
-                    datetime = await time_element.evaluate("e => e.getAttribute('datetime')") if time_element else None
-                    first_event = f"{datetime} - {team1} vs {team2}" if datetime else f"{team1} vs {team2}"
+            # Estrai titolo partita e orario
+            if tag_name == "TIME":
+                if children.index(el) > 0:  # Assicurati di essere dopo di un tag <p>
+                    # Trovare la partita prima di questo elemento
+                    match = re.search(r"(.+?)\s+vs\s+(.+)", children[children.index(el) - 1].text_content())
+                    if match:
+                        team1 = match.group(1).strip()
+                        team2 = match.group(2).strip()
+                        datetime = await el.evaluate("e => e.getAttribute('datetime')")
 
-                    # Chiudi il ciclo dopo aver trovato il primo evento
-                    break
+                        # Raccogli informazioni sull'evento
+                        first_event = f"{datetime} - {league_info}: {team1} vs {team2}"
 
-        # Estrai i canali AceStream associati a questo evento
-        if first_event:
-            for el in children:
-                tag_name = await el.evaluate("e => e.tagName")
-                if tag_name == "A":
-                    href = await el.get_attribute("href")
-                    if href and href.startswith("acestream://"):
-                        channel_title = text if len(text) > 0 else "Channel"
-                        content_id = href.replace("acestream://", "")
-                        http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
-                        channels.append((channel_title, http_link))
+            # Estrai i canali AceStream associati a questo evento
+            if tag_name == "A" and first_event:
+                href = await el.get_attribute("href")
+                if href and href.startswith("acestream://"):
+                    channel_title = text if len(text) > 0 else "Channel"
+                    content_id = href.replace("acestream://", "")
+                    http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
+                    channels.append((channel_title, http_link))
 
         # Scrivi il file M3U
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
-            if first_event:
+            if first_event and channels:
                 for channel_title, http_link in channels:
                     f.write(f'#EXTINF:-1 group-title="{first_event}",{channel_title}\n{http_link}\n')
 
