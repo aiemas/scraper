@@ -23,19 +23,20 @@ async def main():
         # Estrai il contenuto della pagina
         content = await page.content()
 
-        # Troviamo tutte le partite con i relativi canali AceStream
-        partite = re.findall(
-            r'<p>(.*?)</p>\s*<time datetime=".*?">(.*?)</time>\s*(.+?\svs\s.+?)\s*(.*?)<time', 
+        # Troviamo tutti i dettagli delle partite
+        eventi = re.findall(
+            r'(<p>(.*?)</p>\s*<time datetime=".*?">(.*?)</time>\s*(.+?\svs\s.+?)\s*(.*?)<time)', 
             content, re.DOTALL
         )
 
-        print(f"[DEBUG] Partite trovate: {len(partite)}")
+        print(f"[DEBUG] Eventi trovati: {len(eventi)}")
 
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
 
-            for partita_info in partite:
-                competizione, orario, partita, canali = partita_info
+            # Iteriamo su tutti gli eventi
+            for partita_info in eventi:
+                header, competizione, orario, partita, canali = partita_info
                 competizione = competizione.strip()
                 orario = orario.strip()
                 partita = partita.strip()
@@ -51,7 +52,7 @@ async def main():
                     print(f"[WARNING] Nessun link AceStream trovato per {partita}")
                     continue
 
-                # Scrivi ogni link AceStream nel file M3U
+                # Scrive ogni link AceStream nel file M3U
                 for ace_link, channel_title in links:
                     f.write(f'#EXTINF:-1 group-title="{competizione} - {partita} ({orario})", {channel_title.strip()}\n{ace_link}\n')
 
