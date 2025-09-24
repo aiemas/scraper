@@ -63,7 +63,6 @@ async def main():
 
             for el in children:
                 text = (await el.evaluate("e => e.textContent.trim()")).strip()
-                tag_name = await el.evaluate("e => e.tagName")
                 href = await el.get_attribute("href")
 
                 # 👇 indipendentemente dal tag, se contiene "vs" è la partita
