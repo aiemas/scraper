@@ -19,9 +19,7 @@ OUTPUT_FILE = "platinsport.m3u"
 def get_direct_link(bcvc_url: str) -> str:
     """Estrae il link diretto alla pagina /link/... dalla URL bc.vc"""
     match = re.search(r"https?://www\.platinsport\.com/link/[^\s\"'>]+", bcvc_url)
-    if match:
-        return match.group(0)
-    return bcvc_url  # fallback
+    return match.group(0) if match else bcvc_url  # fallback
 
 async def main():
     async with async_playwright() as p:
@@ -59,48 +57,56 @@ async def main():
             await browser.close()
             return
 
+        # Estrai informazioni
+        matches = []
         children = await container.query_selector_all(":scope > *")
+        
         if not children:
             print("[ERRORE] Nessun elemento trovato nella pagina dei canali")
             await browser.close()
             return
 
-        print("[INFO] Analizzo gli elementi per costruire playlist gerarchica...")
+        print("[INFO] Estrae i link e le partite...")
+        
+        for el in children:
+            tag_name = await el.evaluate("e => e.tagName")
+            text = await el.evaluate("e => e.textContent.trim()")
+
+            # Estrai le partite
+            if tag_name == "P" and len(text) > 0:
+                match = re.search(r"(.+?)\s+vs\s+(.+)", text)
+                if match:
+                    match_info = {
+                        "team1": match.group(1).strip(),
+                        "team2": match.group(2).strip(),
+                        "time": await el.query_selector("time") or None
+                    }
+                    matches.append(match_info)
+
+            # Estrai i link AceStream
+            elif tag_name == "A":
+                href = await el.get_attribute("href")
+                if href and href.startswith("acestream://"):
+                    channel_title = text if len(text) > 0 else "Channel"
+                    content_id = href.replace("acestream://", "")
+                    http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
+                    
+                    # Aggiungi il link AceStream all'ultimo match trovato
+                    if matches:
+                        matches[-1].setdefault("channels", []).append((channel_title, http_link))
+
+        # Scrivi il file M3U
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
-            current_group = None  # Inizializziamo come None
-
-            for el in children:
-                tag_name = await el.evaluate("e => e.tagName")
-                text = await el.evaluate("e => e.textContent.trim()")
-
-                # blocchi titolo partita/torneo
-                if tag_name == "P":
-                    # Se il tag è P, potrebbe contenere il titolo della partita
-                    if len(text) > 0:
-                        match = re.search(r"(.+?)\s+vs\s+(.+)", text)
-                        if match:
-                            # Prendiamo la partita
-                            team1 = match.group(1).strip()
-                            team2 = match.group(2).strip()
-
-                            # Recuperiamo anche l'orario se disponibile
-                            time_element = await el.query_selector("time")
-                            datetime = await time_element.evaluate("e => e.getAttribute('datetime')") if time_element else None
-                            current_group = f"{datetime} - {team1} vs {team2}" if datetime else f"{team1} vs {team2}"
-
-                elif tag_name == "A":
-                    href = await el.get_attribute("href")
-                    if href and href.startswith("acestream://"):
-                        channel_title = text if len(text) > 0 else "Channel"
-                        content_id = href.replace("acestream://", "")
-                        http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
-                        
-                        # Scrivere solo se current_group è stato definito
-                        if current_group:
+            for match in matches:
+                if match["time"]:
+                    datetime = await match["time"].evaluate("e => e.getAttribute('datetime')")
+                    current_group = f"{datetime} - {match['team1']} vs {match['team2']}"
+                    
+                    if "channels" in match:
+                        for channel in match["channels"]:
+                            channel_title, http_link = channel
                             f.write(f'#EXTINF:-1 group-title="{current_group}",{channel_title}\n{http_link}\n')
-                        else:
-                            print("[WARNING] Nessun gruppo trovato per il canale: {channel_title}")
 
         print(f"[OK] Playlist gerarchica salvata in {OUTPUT_FILE}")
         await browser.close()
