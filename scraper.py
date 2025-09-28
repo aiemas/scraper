@@ -14,29 +14,28 @@ async def main():
         await page.goto(PLATIN_URL, timeout=60000)
         await page.wait_for_load_state("networkidle")
 
-        # Trova tutti i container principali della pagina
-        containers = await page.query_selector_all("body *")
+        # Trova tutti gli elementi della pagina in ordine
+        all_elements = await page.query_selector_all("body *")
 
         grouped_links = {}
         current_match = None
 
-        for el in containers:
+        for el in all_elements:
             text = (await el.inner_text()).strip()
 
             # Controlla se è una partita
-            match = re.match(r'([A-Z][A-Za-z\s]+)\s+vs\s+([A-Z][A-Za-z\s]+)', text, flags=re.IGNORECASE)
+            match = re.search(r'\b[A-Z][A-Za-z\s]*\s+vs\s+[A-Z][A-Za-z\s]*\b', text, flags=re.IGNORECASE)
             if match:
                 current_match = match.group(0).title()
                 grouped_links[current_match] = []
                 continue
 
-            # Se abbiamo una partita corrente, cerca link AceStream dentro questo elemento
-            if current_match:
-                links = await el.query_selector_all("a[href^='acestream://']")
-                for link_el in links:
-                    href = await link_el.get_attribute("href")
-                    if href:
-                        grouped_links[current_match].append(href)
+            # Prendi tutti i link AceStream presenti in questo elemento
+            link_elements = await el.query_selector_all("a[href^='acestream://']")
+            for link_el in link_elements:
+                href = await link_el.get_attribute("href")
+                if href and current_match:
+                    grouped_links[current_match].append(href)
 
         # Scrivi la playlist M3U
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
