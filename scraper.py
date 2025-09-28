@@ -74,18 +74,15 @@ async def main():
                 tag_name = await el.evaluate("e => e.tagName")
                 text = await el.evaluate("e => e.textContent.trim()")
 
+                # blocchi titolo partita/torneo
                 if tag_name in ["STRONG", "H5", "DIV", "P"]:
                     if len(text) > 0:
-                        # Cerca pattern "Team A Vs Team B" nel testo
-                        match_partita = re.search(
-                            r'\b[A-Z][A-Za-z\s]*\s+Vs\s+[A-Z][A-Za-z\s]*\b',
-                            text, flags=re.IGNORECASE
-                        )
-                        if match_partita:
-                            current_group = match_partita.group(0)
+                        # controlla se il testo contiene orario + partita (es. 20:45 Team1 vs Team2)
+                        match = re.match(r"(\d{2}:\d{2})\s+(.+vs.+)", text)
+                        if match:
+                            current_group = f"{current_group} - {match.group(1)} {match.group(2)}"
                         else:
-                            # Se non è una partita, lascia invariato current_group
-                            pass
+                            current_group = text
 
                 elif tag_name == "A":
                     href = await el.get_attribute("href")
