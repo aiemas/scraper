@@ -1,5 +1,5 @@
 #EXTM3U
-#EXTINF:-1,Scotland - Scottish Premiership
+#EXTINF:-1,SKY SPORTS FOOTBALL
 http://127.0.0.1:6878/ace/getstream?id=8dbe2d515e9131fa311353537736f8c94be9b26d
 #EXTINF:-1,SKY SPORTS FOOTBALL
 http://127.0.0.1:6878/ace/getstream?id=54de746f7823812312b4000422618465f7d58f87
@@ -7,38 +7,6 @@ http://127.0.0.1:6878/ace/getstream?id=54de746f7823812312b4000422618465f7d58f87
 http://127.0.0.1:6878/ace/getstream?id=6ed4b45ba6897e22ccfc68a1d5094780b1b82452
 #EXTINF:-1,POLSAT SPORT PREMIUM 2
 http://127.0.0.1:6878/ace/getstream?id=3147c586346aee00c005d1caa55204d38678c95f
-#EXTINF:-1,England - Premier League
-http://127.0.0.1:6878/ace/getstream?id=d08013df6e437a1fdf1e0c34f573fdf6a40c7fce
-#EXTINF:-1,ELEVEN DAZN 2 HD
-http://127.0.0.1:6878/ace/getstream?id=9c726c4917a60bea3a2ebfde25a60355ec536836
-#EXTINF:-1,SKY SPORTS PREMIER
-http://127.0.0.1:6878/ace/getstream?id=ec5eabe0144ccfffc337e1d6708e2afb81d0638e
-#EXTINF:-1,SKY SPORTS MAIN EVENT
-http://127.0.0.1:6878/ace/getstream?id=eab7aeef0218ce8b0752e596e4792b69eda4df5e
-#EXTINF:-1,SKY SPORTS MAIN EVENT
-http://127.0.0.1:6878/ace/getstream?id=78266c15035d0ad8cbc58f821733931e1de434ab
-#EXTINF:-1,DAZN 1 FHD
-http://127.0.0.1:6878/ace/getstream?id=eb6ffec065b26259ad3d1811e0bbb0a5332ed276
-#EXTINF:-1,DAZN 1 FHD
-http://127.0.0.1:6878/ace/getstream?id=7ba1f321f4d0791b7ebd42f41a07c1cd1479e784
-#EXTINF:-1,DAZN 1 FHD
-http://127.0.0.1:6878/ace/getstream?id=6538b79ce0da657d8455d1da6a5f342398899a0e
-#EXTINF:-1,DAZN 1 FHD
-http://127.0.0.1:6878/ace/getstream?id=50a8a13c474848d1efbd5586efdb5b6cdd173fa9
-#EXTINF:-1,DAZN 1 FHD
-http://127.0.0.1:6878/ace/getstream?id=4141892f5df7d6474bf0279895ce02b7336c9928
-#EXTINF:-1,DAZN 1 FHD
-http://127.0.0.1:6878/ace/getstream?id=ee4dc45720d3ec283f61189fbfc120c91d5141bf
-#EXTINF:-1,DAZN 1 BAR FHD
-http://127.0.0.1:6878/ace/getstream?id=688e785893b50acc1d00cb37f15bfc42e72f5ae3
-#EXTINF:-1,BEIN SPORTS 3 HD
-http://127.0.0.1:6878/ace/getstream?id=ed81c333815247536edfcdb2755147e8c4144d62
-#EXTINF:-1,SETANTA 1 RU HD
-http://127.0.0.1:6878/ace/getstream?id=42fe2ce3ef6b92653a74d85b6e98c2ba0abee707
-#EXTINF:-1,SPORT TV HD
-http://127.0.0.1:6878/ace/getstream?id=9e0b5e269592cc3f5820c4320ac31f661a8ee0ac
-#EXTINF:-1,SPORT TV HD
-http://127.0.0.1:6878/ace/getstream?id=9e3bc17fc01ae71a45f7a9d8180aa48b689f3218
 #EXTINF:-1,ELEVEN DAZN 2 HD
 http://127.0.0.1:6878/ace/getstream?id=d08013df6e437a1fdf1e0c34f573fdf6a40c7fce
 #EXTINF:-1,ELEVEN DAZN 2 HD
@@ -71,7 +39,39 @@ http://127.0.0.1:6878/ace/getstream?id=42fe2ce3ef6b92653a74d85b6e98c2ba0abee707
 http://127.0.0.1:6878/ace/getstream?id=9e0b5e269592cc3f5820c4320ac31f661a8ee0ac
 #EXTINF:-1,SPORT TV HD
 http://127.0.0.1:6878/ace/getstream?id=9e3bc17fc01ae71a45f7a9d8180aa48b689f3218
-#EXTINF:-1,Spain - La Liga
+#EXTINF:-1,ELEVEN DAZN 2 HD
+http://127.0.0.1:6878/ace/getstream?id=d08013df6e437a1fdf1e0c34f573fdf6a40c7fce
+#EXTINF:-1,ELEVEN DAZN 2 HD
+http://127.0.0.1:6878/ace/getstream?id=9c726c4917a60bea3a2ebfde25a60355ec536836
+#EXTINF:-1,SKY SPORTS PREMIER
+http://127.0.0.1:6878/ace/getstream?id=ec5eabe0144ccfffc337e1d6708e2afb81d0638e
+#EXTINF:-1,SKY SPORTS MAIN EVENT
+http://127.0.0.1:6878/ace/getstream?id=eab7aeef0218ce8b0752e596e4792b69eda4df5e
+#EXTINF:-1,SKY SPORTS MAIN EVENT
+http://127.0.0.1:6878/ace/getstream?id=78266c15035d0ad8cbc58f821733931e1de434ab
+#EXTINF:-1,DAZN 1 FHD
+http://127.0.0.1:6878/ace/getstream?id=eb6ffec065b26259ad3d1811e0bbb0a5332ed276
+#EXTINF:-1,DAZN 1 FHD
+http://127.0.0.1:6878/ace/getstream?id=7ba1f321f4d0791b7ebd42f41a07c1cd1479e784
+#EXTINF:-1,DAZN 1 FHD
+http://127.0.0.1:6878/ace/getstream?id=6538b79ce0da657d8455d1da6a5f342398899a0e
+#EXTINF:-1,DAZN 1 FHD
+http://127.0.0.1:6878/ace/getstream?id=50a8a13c474848d1efbd5586efdb5b6cdd173fa9
+#EXTINF:-1,DAZN 1 FHD
+http://127.0.0.1:6878/ace/getstream?id=4141892f5df7d6474bf0279895ce02b7336c9928
+#EXTINF:-1,DAZN 1 FHD
+http://127.0.0.1:6878/ace/getstream?id=ee4dc45720d3ec283f61189fbfc120c91d5141bf
+#EXTINF:-1,DAZN 1 BAR FHD
+http://127.0.0.1:6878/ace/getstream?id=688e785893b50acc1d00cb37f15bfc42e72f5ae3
+#EXTINF:-1,BEIN SPORTS 3 HD
+http://127.0.0.1:6878/ace/getstream?id=ed81c333815247536edfcdb2755147e8c4144d62
+#EXTINF:-1,SETANTA 1 RU HD
+http://127.0.0.1:6878/ace/getstream?id=42fe2ce3ef6b92653a74d85b6e98c2ba0abee707
+#EXTINF:-1,SPORT TV HD
+http://127.0.0.1:6878/ace/getstream?id=9e0b5e269592cc3f5820c4320ac31f661a8ee0ac
+#EXTINF:-1,SPORT TV HD
+http://127.0.0.1:6878/ace/getstream?id=9e3bc17fc01ae71a45f7a9d8180aa48b689f3218
+#EXTINF:-1,ELEVEN DAZN 1 HD
 http://127.0.0.1:6878/ace/getstream?id=36cad67fed5a739757a9db844a551aa845a8d51b
 #EXTINF:-1,ELEVEN DAZN 1 HD
 http://127.0.0.1:6878/ace/getstream?id=29df34d41d25647e1963e95a1cd9ed5bf59702c8
@@ -203,7 +203,7 @@ http://127.0.0.1:6878/ace/getstream?id=f6d68cfa8694f814983f2a5757f4e0c4964b880c
 http://127.0.0.1:6878/ace/getstream?id=ffbf8c687c788d9a1a7c651e24802ee773ff3f04
 #EXTINF:-1,MATCH! FOOTBALL 2 FHD
 http://127.0.0.1:6878/ace/getstream?id=fbffa5c9473a53ffe9d8f039378071807d01a6ac
-#EXTINF:-1,Italy - Serie A
+#EXTINF:-1,SPORT TV2 FHD
 http://127.0.0.1:6878/ace/getstream?id=e8ccd6a0c1b49e29b99ccbf95add01ffdf01d212
 #EXTINF:-1,DAZN 1 BAR FHD
 http://127.0.0.1:6878/ace/getstream?id=897e73c9d578848f596585314ecb9ae067c0e229
@@ -269,7 +269,7 @@ http://127.0.0.1:6878/ace/getstream?id=a203f6b935a8ad8659c4c76c1d9c13afa6368ef2
 http://127.0.0.1:6878/ace/getstream?id=b28db77c5084da7993395d77df96c30bb134f0a9
 #EXTINF:-1,MATCH! FOOTBALL 1 FHD
 http://127.0.0.1:6878/ace/getstream?id=8116e47808bd313169493f8740b141dee557493a
-#EXTINF:-1,Germany - Bundesliga
+#EXTINF:-1,ELEVEN DAZN 4 HD
 http://127.0.0.1:6878/ace/getstream?id=0f32c0131a2d9444996410801f4e18b04384db98
 #EXTINF:-1,DAZN 2 BAR FHD
 http://127.0.0.1:6878/ace/getstream?id=12ea555d431dbe51fc8e4ca745aec09fe22a4865
@@ -307,7 +307,7 @@ http://127.0.0.1:6878/ace/getstream?id=458a0ddd7d193f6d2750cd14d03a47f47a808e09
 http://127.0.0.1:6878/ace/getstream?id=8086e6d26c036edb2ff2e0319f7cc21676fbed0f
 #EXTINF:-1,SPORT TV HD
 http://127.0.0.1:6878/ace/getstream?id=2a911af3440257ff94e2f853fbc641514ee42f3b
-#EXTINF:-1,France - Ligue 1
+#EXTINF:-1,SPORT TV3 FHD
 http://127.0.0.1:6878/ace/getstream?id=0cfd0542227f29d9a5bb7fa2611aa5bfbeebd875
 #EXTINF:-1,SPORT TV HD
 http://127.0.0.1:6878/ace/getstream?id=63762f407ad3f70db55f3cd4a48b2fe73cab5523
@@ -341,7 +341,7 @@ http://127.0.0.1:6878/ace/getstream?id=b146ee4b6e16c9df58e27bd02ffd6cea840ff212
 http://127.0.0.1:6878/ace/getstream?id=4d381982c9e46dde122e1a5083555a87e93545f6
 #EXTINF:-1,SPORT TV HD
 http://127.0.0.1:6878/ace/getstream?id=5b71f39fe5e11b3615771d11415233784fbdc8d3
-#EXTINF:-1,Portugal - Primeira Liga
+#EXTINF:-1,SPORT TV1 FHD
 http://127.0.0.1:6878/ace/getstream?id=c5c19ac98d333df9b1cb979de1ca0f3a008721a4
 #EXTINF:-1,SPORT TV1 FHD
 http://127.0.0.1:6878/ace/getstream?id=c5c19ac98d333df9b1cb979de1ca0f3a008721a4
@@ -353,7 +353,7 @@ http://127.0.0.1:6878/ace/getstream?id=0623008037faeab4579231d85eaf16308de11e94
 http://127.0.0.1:6878/ace/getstream?id=28cbe6164820ea4c3a0be3ef6cea49bf79ae5f60
 #EXTINF:-1,SPORT TV1 FHD
 http://127.0.0.1:6878/ace/getstream?id=c5c19ac98d333df9b1cb979de1ca0f3a008721a4
-#EXTINF:-1,Turkey - Super Lig
+#EXTINF:-1,BEIN SPORTS 1 HD
 http://127.0.0.1:6878/ace/getstream?id=118416583faa3fb4f03800173429b6b844b43a52
 #EXTINF:-1,BEIN SPORTS 1 HD
 http://127.0.0.1:6878/ace/getstream?id=b64c6ce20cad66a290194c48f442b5650ba544be
@@ -373,7 +373,7 @@ http://127.0.0.1:6878/ace/getstream?id=a23b78f2caa92ab9106249d484604cfdf82daa6c
 http://127.0.0.1:6878/ace/getstream?id=48bee10b883f17c7186d60f1e8022dca0ba41a05
 #EXTINF:-1,BEIN SPORTS 2 HD
 http://127.0.0.1:6878/ace/getstream?id=158da70f0db8486dd37589bd8e2a57f91e4d857d
-#EXTINF:-1,Netherlands - Eredivisie
+#EXTINF:-1,ESPN 2 FHD
 http://127.0.0.1:6878/ace/getstream?id=3e0ba6867173f345d482d80c771f1a5dc3b37e63
 #EXTINF:-1,ESPN 2 FHD
 http://127.0.0.1:6878/ace/getstream?id=6e8a296c4ed8bc1f868b56356034c80364550cf4
@@ -399,13 +399,13 @@ http://127.0.0.1:6878/ace/getstream?id=19664ddb8c645d9fd2fba62355a8aa18fe0d6716
 http://127.0.0.1:6878/ace/getstream?id=3e0ba6867173f345d482d80c771f1a5dc3b37e63
 #EXTINF:-1,ESPN 2 FHD
 http://127.0.0.1:6878/ace/getstream?id=6e8a296c4ed8bc1f868b56356034c80364550cf4
-#EXTINF:-1,Russia - Premier League
-http://127.0.0.1:6878/ace/getstream?id=4b7c5f21b435d79c823e47572655a9c157a3ba12
 #EXTINF:-1,MATCH PREMIER TV FHD
 http://127.0.0.1:6878/ace/getstream?id=4b7c5f21b435d79c823e47572655a9c157a3ba12
 #EXTINF:-1,MATCH PREMIER TV FHD
 http://127.0.0.1:6878/ace/getstream?id=4b7c5f21b435d79c823e47572655a9c157a3ba12
-#EXTINF:-1,Spain - Segunda Division
+#EXTINF:-1,MATCH PREMIER TV FHD
+http://127.0.0.1:6878/ace/getstream?id=4b7c5f21b435d79c823e47572655a9c157a3ba12
+#EXTINF:-1,HYPERMOTION FHD
 http://127.0.0.1:6878/ace/getstream?id=87bb542f974b6b9e89d0f2e20ed6dc93426f4be0
 #EXTINF:-1,HYPERMOTION FHD
 http://127.0.0.1:6878/ace/getstream?id=a4f072c9b614323ac1258a175f868a909ea3c8cd
@@ -429,15 +429,15 @@ http://127.0.0.1:6878/ace/getstream?id=a4f072c9b614323ac1258a175f868a909ea3c8cd
 http://127.0.0.1:6878/ace/getstream?id=87bb542f974b6b9e89d0f2e20ed6dc93426f4be0
 #EXTINF:-1,HYPERMOTION FHD
 http://127.0.0.1:6878/ace/getstream?id=a4f072c9b614323ac1258a175f868a909ea3c8cd
-#EXTINF:-1,The broadcast links will be updated every 5 minutes.
+#EXTINF:-1,ELEVEN DAZN 4 HD
 http://127.0.0.1:6878/ace/getstream?id=0f32c0131a2d9444996410801f4e18b04384db98
 #EXTINF:-1,ELEVEN SPORTS 3 HD
 http://127.0.0.1:6878/ace/getstream?id=b146ee4b6e16c9df58e27bd02ffd6cea840ff212
-#EXTINF:-1,USA/Canada - Major League Soccer
+#EXTINF:-1,SPORTDIGITAL HD
 http://127.0.0.1:6878/ace/getstream?id=5e94200ae8b1d95cb559fb150e5993d92e15d4e7
 #EXTINF:-1,SPORTDIGITAL HD
 http://127.0.0.1:6878/ace/getstream?id=0623008037faeab4579231d85eaf16308de11e94
-#EXTINF:-1,Argentina - Primera División
+#EXTINF:-1,SPORT TV2 FHD
 http://127.0.0.1:6878/ace/getstream?id=e8ccd6a0c1b49e29b99ccbf95add01ffdf01d212
 #EXTINF:-1,PREMIER SPORT 1 FHD
 http://127.0.0.1:6878/ace/getstream?id=75a56863b6fe0407ad4305b4d7ee5643c3923565
@@ -447,7 +447,7 @@ http://127.0.0.1:6878/ace/getstream?id=08a6c445c51ad79944fa968a1bb47c2ed3e0a8e7
 http://127.0.0.1:6878/ace/getstream?id=5e94200ae8b1d95cb559fb150e5993d92e15d4e7
 #EXTINF:-1,SPORTDIGITAL HD
 http://127.0.0.1:6878/ace/getstream?id=0623008037faeab4579231d85eaf16308de11e94
-#EXTINF:-1,Brazil - Brasileirão
+#EXTINF:-1,SPORT TV HD
 http://127.0.0.1:6878/ace/getstream?id=27a54c3d34e84c5d47569cde0e2c36ba540caf2d
 #EXTINF:-1,SPORT TV HD
 http://127.0.0.1:6878/ace/getstream?id=5e94200ae8b1d95cb559fb150e5993d92e15d4e7
@@ -461,7 +461,7 @@ http://127.0.0.1:6878/ace/getstream?id=a23b78f2caa92ab9106249d484604cfdf82daa6c
 http://127.0.0.1:6878/ace/getstream?id=b6baa046075d82da300fc1b16de96067a8b9540e
 #EXTINF:-1,MATCH! FOOTBALL 3 FHD
 http://127.0.0.1:6878/ace/getstream?id=a23b78f2caa92ab9106249d484604cfdf82daa6c
-#EXTINF:-1,The broadcast links will be updated every 5 minutes.
+#EXTINF:-1,SPORT TV HD
 http://127.0.0.1:6878/ace/getstream?id=27a54c3d34e84c5d47569cde0e2c36ba540caf2d
 #EXTINF:-1,PREMIER SPORT 1 FHD
 http://127.0.0.1:6878/ace/getstream?id=75a56863b6fe0407ad4305b4d7ee5643c3923565
@@ -481,7 +481,7 @@ http://127.0.0.1:6878/ace/getstream?id=651d6be899d1fafa107a265a9dc00ff914c1b548
 http://127.0.0.1:6878/ace/getstream?id=b6baa046075d82da300fc1b16de96067a8b9540e
 #EXTINF:-1,MATCH! FOOTBALL 3 FHD
 http://127.0.0.1:6878/ace/getstream?id=a23b78f2caa92ab9106249d484604cfdf82daa6c
-#EXTINF:-1,Uruguay - Primera Division
+#EXTINF:-1,GOLTV PLAY FHD
 http://127.0.0.1:6878/ace/getstream?id=8546cff89e4ee8bf3ad31cf6457c3bc2c4341031
 #EXTINF:-1,GOLTV PLAY FHD
 http://127.0.0.1:6878/ace/getstream?id=9be118a64eb603b5eb62be6cf27631d3891b5174
