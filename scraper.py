@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import asyncio
-import re
 from playwright.async_api import async_playwright
 
 PLATIN_URL = "https://www.platinsport.com"
@@ -12,20 +11,13 @@ async def main():
         await page.goto(PLATIN_URL, timeout=60000)
         await page.wait_for_load_state("domcontentloaded")
 
-        # Prendi tutto il testo del container principale
-        container = await page.query_selector(".myDiv1")
-        if not container:
-            print("Container principale non trovato")
-            await browser.close()
-            return
+        # Prendi tutti i paragrafi e div principali
+        elements = await page.query_selector_all(".myDiv1 > *")
 
-        content_text = await container.evaluate("e => e.innerText")
-
-        # Trova tutte le partite tipo "TeamA VS TeamB"
-        matches = re.findall(r"\b([A-Z0-9 ]+)\s+VS\s+([A-Z0-9 ]+)\b", content_text, flags=re.IGNORECASE)
-
-        for match in matches:
-            print(f"{match[0].strip()} VS {match[1].strip()}")
+        for el in elements:
+            text = await el.evaluate("e => e.innerText")
+            if text and "vs" in text.lower():
+                print(text.strip())
 
         await browser.close()
 
