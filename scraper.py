@@ -75,10 +75,11 @@ async def main():
                 text = await el.evaluate("e => e.textContent.trim()")
 
                 # blocchi titolo partita/torneo
+                # blocchi titolo partita/torneo
                 if tag_name in ["STRONG", "H5", "DIV", "P"]:
-                    if len(text) > 0:
-                # Usa l'intero testo come titolo del gruppo
-                    current_group = text
+                   if len(text) > 0:
+                    # Usa l'intero testo come titolo del gruppo
+                   current_group = text
 
                 elif tag_name == "A":
                     href = await el.get_attribute("href")
