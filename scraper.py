@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-Platinsport scraper aggiornato con Playwright
-- Trova link AceStream vicino agli eventi
-- Recupera orario + partita
-- Genera playlist M3U con group-title = "HH:MM Team1 vs Team2"
+Platinsport scraper con Playwright
+- Estrae i link AceStream
+- Usa come group-title il nome della partita (es: "Roma vs Hellas Verona")
 """
 
 import asyncio
@@ -18,47 +17,30 @@ async def scrape():
         page = await browser.new_page()
         await page.goto(URL)
 
-        # trova il contenitore principale
         container = await page.query_selector("div.content")
-
-        # recupera tutti i figli diretti
         children = await container.query_selector_all(":scope > *")
 
         with open(OUTPUT, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
 
-            current_time = None
             current_match = None
-            current_group = None
 
             for el in children:
-                tag_name = await el.evaluate("e => e.tagName")
+                tag_name = await el.evaluate("e => e.tagName") if await el.evaluate("e => e.tagName") else None
                 text = await el.evaluate("e => e.textContent.trim()")
 
-                # IGNORA i <p> con la competizione
-                if tag_name == "P":
-                    continue
-
-                # cattura l'orario
-                if tag_name == "TIME":
-                    dt = await el.get_attribute("datetime")
-                    if dt and len(dt) >= 16:
-                        current_time = dt[11:16]  # estrae HH:MM
-
-                # cattura la partita (Team1 vs Team2)
-                elif "vs" in text:
+                # Se il testo contiene "vs", consideralo come nome partita
+                if "vs" in text and len(text) < 80:  # filtro per non prendere stringhe troppo lunghe
                     current_match = text
-                    if current_time and current_match:
-                        current_group = f"{current_time} {current_match}"
 
-                # cattura i link AceStream
-                elif tag_name == "A":
+                # Se è un link AceStream e abbiamo già il match
+                if tag_name == "A":
                     href = await el.get_attribute("href")
-                    if href and href.startswith("acestream://") and current_group:
+                    if href and href.startswith("acestream://") and current_match:
                         channel_title = text if text else "Channel"
                         content_id = href.replace("acestream://", "")
                         http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
-                        f.write(f'#EXTINF:-1 group-title="{current_group}",{channel_title}\n{http_link}\n')
+                        f.write(f'#EXTINF:-1 group-title="{current_match}",{channel_title}\n{http_link}\n')
 
         await browser.close()
 
