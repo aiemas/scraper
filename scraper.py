@@ -3,7 +3,11 @@ import asyncio
 from playwright.async_api import async_playwright
 import re
 
+# URL della pagina diretta che ci hai fornito
 PLATIN_URL = "https://www.platinsport.com/link/28sunxqrx/01.php"
+
+# File M3U di output
+OUTPUT_FILE = "playlist.m3u"
 
 async def main():
     async with async_playwright() as p:
@@ -12,40 +16,40 @@ async def main():
         await page.goto(PLATIN_URL, timeout=60000)
         await page.wait_for_load_state("networkidle")
 
+        # Contenuto della pagina
         content = await page.content()
 
-        # Trova tutte le partite principali (Livingston vs Rangers ...)
-        matches = re.findall(r'\b[A-Z][A-Z\s]*\s+vs\s+[A-Z][A-Z\s]*\b', content, flags=re.IGNORECASE)
-        # Trova tutti i link AceStream
-        links = re.findall(r'http://127\.0\.0\.1:6878/ace/getstream\?id=[a-f0-9]+', content)
+        # Trova tutte le partite (pattern tipo "Team A Vs Team B")
+        matches = re.findall(r'\b[A-Z][A-Za-z\s]*\s+Vs\s+[A-Z][A-Za-z\s]*\b', content, flags=re.IGNORECASE)
+
+        # Trova tutti i link "Channel" (in ordine, così li assoceremo alle partite)
+        links = re.findall(r'(http://127\.0\.0\.1:6878/ace/getstream\?id=[a-f0-9]+)', content)
 
         if not matches or not links:
             print("Nessuna partita o link trovati")
             await browser.close()
             return
 
-        # Iniziamo la playlist M3U
-        m3u = ["#EXTM3U"]
+        # Scrittura M3U
+        with open(OUTPUT_FILE, "w") as f:
+            f.write("#EXTM3U\n")
+            
+            # Assumiamo che ci siano N link per partita in ordine
+            links_per_match = len(links) // len(matches)
+            extra_links = len(links) % len(matches)
+            idx = 0
 
-        link_index = 0
-        for match in matches:
-            match_name = match.title().strip()
-            # Primo link della partita
-            if link_index < len(links):
-                m3u.append(f"#EXTINF:-1,{match_name}")
-                m3u.append(links[link_index])
-                link_index += 1
-            # Link extra (associamo due per partita se presenti, si può cambiare)
-            extra_count = 2  # quanti Channel extra per partita vuoi aggiungere
-            for i in range(extra_count):
-                if link_index < len(links):
-                    m3u.append(f"#EXTINF:-1,{match_name} (Channel {i+2})")
-                    m3u.append(links[link_index])
-                    link_index += 1
+            for i, match in enumerate(matches):
+                f.write(f"#EXTINF:-1,{match.strip()}\n")
+                
+                # Numero di link da associare a questa partita
+                n_links = links_per_match + (1 if i < extra_links else 0)
+                
+                for _ in range(n_links):
+                    f.write(links[idx] + "\n")
+                    idx += 1
 
-        # Stampa la playlist finale
-        print("\n".join(m3u))
-
+        print(f"Playlist generata: {OUTPUT_FILE}")
         await browser.close()
 
 if __name__ == "__main__":
