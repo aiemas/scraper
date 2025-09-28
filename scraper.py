@@ -14,38 +14,42 @@ async def main():
         await page.goto(PLATIN_URL, timeout=60000)
         await page.wait_for_load_state("networkidle")
 
-        # Trova tutti i container principali
-        containers = await page.query_selector_all("body *")  # possiamo restringere se serve
+        # Trova tutti i container principali della pagina
+        containers = await page.query_selector_all("body *")
 
-        playlist = []
+        grouped_links = {}
         current_match = None
 
         for el in containers:
             text = (await el.inner_text()).strip()
 
-            # Controlla se il testo è una partita
+            # Controlla se è una partita
             match = re.match(r'([A-Z][A-Za-z\s]+)\s+vs\s+([A-Z][A-Za-z\s]+)', text, flags=re.IGNORECASE)
             if match:
                 current_match = match.group(0).title()
+                grouped_links[current_match] = []
                 continue
 
-            # Se abbiamo trovato una partita, cerchiamo link AceStream dentro questo elemento
-            links = await el.query_selector_all("a[href^='acestream://']")
-            for link_el in links:
-                href = await link_el.get_attribute("href")
-                if href:
-                    content_id = href.replace("acestream://", "")
-                    http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
-                    title = text if text else "Channel"
-                    playlist.append((current_match if current_match else "Unknown Event", title, http_link))
+            # Se abbiamo una partita corrente, cerca link AceStream dentro questo elemento
+            if current_match:
+                links = await el.query_selector_all("a[href^='acestream://']")
+                for link_el in links:
+                    href = await link_el.get_attribute("href")
+                    if href:
+                        grouped_links[current_match].append(href)
 
         # Scrivi la playlist M3U
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
-            for group, title, link in playlist:
-                f.write(f'#EXTINF:-1 group-title="{group}",{title}\n{link}\n')
+            for match, links in grouped_links.items():
+                for idx, link in enumerate(links):
+                    title = f"{match} - Channel {idx+1}" if len(links) > 1 else match
+                    content_id = link.replace("acestream://", "")
+                    http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
+                    f.write(f'#EXTINF:-1 group-title="{match}",{title}\n{http_link}\n')
 
-        print(f"[OK] Playlist salvata in {OUTPUT_FILE} con {len(playlist)} canali")
+        total_links = sum(len(v) for v in grouped_links.values())
+        print(f"[OK] Playlist salvata in {OUTPUT_FILE} con {total_links} canali")
         await browser.close()
 
 if __name__ == "__main__":
