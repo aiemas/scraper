@@ -3,24 +3,21 @@ import asyncio
 from playwright.async_api import async_playwright
 
 async def main():
-    url = "file:///C:/Users/TUO_PC/Desktop/test.html"  # usa il tuo file HTML locale di test
+    url = "https://www.platinsport.com/link/28sunxqrx/01.php"
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
         await page.goto(url)
 
-        # Trova i blocchi di testo con le partite
-        eventi = await page.locator("body").all_text_contents()
+        # Attendi che la pagina sia completamente caricata
+        await page.wait_for_selector("body")
 
-        print("=== CONTENUTO PAGINA ===")
-        for e in eventi:
-            print(e)
+        # Trova tutte le righe di testo
+        lines = await page.locator("body").all_text_contents()
 
-        # Prova a catturare solo "Roma vs Hellas Verona"
-        match = await page.locator("body").inner_text()
-        print("\n=== MATCH TROVATI ===")
-        for line in match.splitlines():
+        print("=== NOMI PARTITE ===")
+        for line in lines:
             if "vs" in line:
                 print(line.strip())
 
