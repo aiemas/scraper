@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import asyncio
 from playwright.async_api import async_playwright
+import re
 
 PLATIN_URL = "https://www.platinsport.com"
 
@@ -9,15 +10,19 @@ async def main():
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
         await page.goto(PLATIN_URL, timeout=60000)
-        await page.wait_for_load_state("domcontentloaded")
+        await page.wait_for_load_state("networkidle")  # aspetta che JS finisca
 
-        # Prendi tutti i paragrafi e div principali
-        elements = await page.query_selector_all(".myDiv1 > *")
+        # Prendi tutto il contenuto della pagina
+        content = await page.content()
 
-        for el in elements:
-            text = await el.evaluate("e => e.innerText")
-            if text and "vs" in text.lower():
-                print(text.strip())
+        # Trova pattern tipo "LIVINGSTON VS RANGERS" (case insensitive)
+        matches = re.findall(r'\b[A-Z][A-Z\s]*\s+vs\s+[A-Z][A-Z\s]*\b', content, flags=re.IGNORECASE)
+
+        if matches:
+            for match in matches:
+                print(match.strip())
+        else:
+            print("Nessuna partita trovata")
 
         await browser.close()
 
