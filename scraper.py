@@ -9,16 +9,18 @@ OUTPUT_FILE = "platinsport.m3u"
 async def main():
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
-        await page.set_user_agent(
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+        
+        # Creiamo un contesto con user-agent personalizzato
+        context = await browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                       "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
         )
+        page = await context.new_page()
+
         print("[INFO] Carico pagina dei canali...")
         await page.goto(DIRECT_URL, timeout=120000)
         await page.wait_for_load_state("networkidle")
 
-        # Seleziona container principale
         container = await page.query_selector(".myDiv1")
         if not container:
             print("[ERRORE] Container principale non trovato")
@@ -42,7 +44,6 @@ async def main():
                 text = await el.evaluate("e => e.textContent.trim()")
                 
                 if tag_name in ["STRONG", "H5", "DIV", "P"]:
-                    # Controlla se contiene "vs" -> è il nome della partita
                     if "vs" in text:
                         current_match = text
                         first_channel = True
@@ -54,7 +55,6 @@ async def main():
                         content_id = href.replace("acestream://", "")
                         http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
 
-                        # Se è il primo canale della partita, scrivi il nome della partita
                         if first_channel and current_match:
                             f.write(f'#EXTINF:-1,{current_match}\n{http_link}\n')
                             first_channel = False
