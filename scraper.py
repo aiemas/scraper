@@ -5,7 +5,7 @@ Platinsport scraper definitivo
 - Estrae il link diretto alla pagina /link/... dei canali AceStream
 - Recupera tutti i link AceStream
 - Genera playlist M3U gerarchica con link HTTP per VLC/AceStream
-    - gruppo = partita/evento + orario + squadra vs squadra
+    - gruppo = tutto il testo della partita/evento
     - canali = link AceStream via HTTP locale
 """
 
@@ -74,13 +74,16 @@ async def main():
                 tag_name = await el.evaluate("e => e.tagName")
                 text = await el.evaluate("e => e.textContent.trim()")
 
-                # blocchi titolo partita/torneo
-                # blocchi titolo partita/torneo
-                # blocchi titolo partita/torneo
+                # blocchi titolo partita/torneo: prende tutto il contenuto dei figli
                 if tag_name in ["STRONG", "H5", "DIV", "P"]:
-                   if len(text) > 0:
-        # Prendi tutto il testo così com'è nella pagina
-                      current_group = text.replace("\n", " ").strip()
+                    children_texts = await el.evaluate("""
+                        e => Array.from(e.childNodes)
+                                  .map(x => x.textContent.trim())
+                                  .filter(Boolean)
+                                  .join(' ')
+                    """)
+                    if children_texts:
+                        current_group = children_texts
 
                 elif tag_name == "A":
                     href = await el.get_attribute("href")
