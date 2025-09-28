@@ -14,25 +14,24 @@ async def main():
         await page.goto(PLATIN_URL, timeout=60000)
         await page.wait_for_load_state("networkidle")
 
-        # Trova tutti gli elementi della pagina in ordine
-        all_elements = await page.query_selector_all("body *")
-
+        # Prendi tutti gli elementi visibili
+        elements = await page.query_selector_all("body *")
         grouped_links = {}
         current_match = None
 
-        for el in all_elements:
+        for el in elements:
             text = (await el.inner_text()).strip()
 
-            # Controlla se è una partita
+            # Controlla se è una partita (Team A vs Team B)
             match = re.search(r'\b[A-Z][A-Za-z\s]*\s+vs\s+[A-Z][A-Za-z\s]*\b', text, flags=re.IGNORECASE)
             if match:
                 current_match = match.group(0).title()
                 grouped_links[current_match] = []
                 continue
 
-            # Prendi tutti i link AceStream presenti in questo elemento
-            link_elements = await el.query_selector_all("a[href^='acestream://']")
-            for link_el in link_elements:
+            # Cerca tutti i link AceStream in questo elemento
+            link_els = await el.query_selector_all("a[href^='acestream://']")
+            for link_el in link_els:
                 href = await link_el.get_attribute("href")
                 if href and current_match:
                     grouped_links[current_match].append(href)
