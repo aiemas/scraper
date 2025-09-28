@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 """
-Platinsport scraper definitivo
-- Trova link bc.vc vicino agli eventi
-- Estrae il link diretto alla pagina /link/... dei canali AceStream
-- Recupera tutti i link AceStream
-- Genera playlist M3U gerarchica con link HTTP per VLC/AceStream
-    - gruppo = tutto il testo della partita/evento
-    - canali = link AceStream via HTTP locale
+Platinsport scraper: lista unica M3U
+- Ogni evento genera almeno un link con il nome completo della partita/evento
+- Tutti i canali AceStream dell'evento vengono inclusi
+- Nessuna gerarchia di gruppi
 """
 
 import asyncio
@@ -65,16 +62,17 @@ async def main():
             await browser.close()
             return
 
-        print("[INFO] Analizzo gli elementi per costruire playlist gerarchica...")
+        print("[INFO] Analizzo gli elementi per costruire lista unica M3U...")
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
-            current_group = "Unknown Event"
+            current_event = None
+            first_channel = True
 
             for el in children:
                 tag_name = await el.evaluate("e => e.tagName")
                 text = await el.evaluate("e => e.textContent.trim()")
 
-                # blocchi titolo partita/torneo: prende tutto il contenuto dei figli
+                # blocchi titolo partita/torneo
                 if tag_name in ["STRONG", "H5", "DIV", "P"]:
                     children_texts = await el.evaluate("""
                         e => Array.from(e.childNodes)
@@ -83,17 +81,22 @@ async def main():
                                   .join(' ')
                     """)
                     if children_texts:
-                        current_group = children_texts
+                        current_event = children_texts
+                        first_channel = True  # resetta il flag per il primo canale
 
                 elif tag_name == "A":
                     href = await el.get_attribute("href")
                     if href and href.startswith("acestream://"):
-                        channel_title = text if len(text) > 0 else "Channel"
                         content_id = href.replace("acestream://", "")
                         http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
-                        f.write(f'#EXTINF:-1 group-title="{current_group}",{channel_title}\n{http_link}\n')
 
-        print(f"[OK] Playlist gerarchica salvata in {OUTPUT_FILE}")
+                        # solo il primo canale dell'evento usa il nome completo
+                        channel_title = current_event if first_channel else text if text else "Channel"
+                        f.write(f'#EXTINF:-1,{channel_title}\n{http_link}\n')
+
+                        first_channel = False  # dopo il primo, i successivi prendono solo il testo del link
+
+        print(f"[OK] Lista unica M3U salvata in {OUTPUT_FILE}")
         await browser.close()
 
 if __name__ == "__main__":
