@@ -70,26 +70,22 @@ async def main():
             f.write("#EXTM3U\n")
             current_group = "Unknown Event"
 
-            # --- Trova tutte le partite presenti nel contenuto della pagina ---
-            matches = re.findall(r'\b[A-Z][A-Za-z\s]*\s+Vs\s+[A-Z][A-Za-z\s]*\b', content, flags=re.IGNORECASE)
-            if matches:
-                print(f"[INFO] Partite trovate nella pagina: {len(matches)}")
-                # per esempio aggiorna current_group al primo match
-                current_group = matches[0]
-
             for el in children:
                 tag_name = await el.evaluate("e => e.tagName")
                 text = await el.evaluate("e => e.textContent.trim()")
 
-                # blocchi titolo partita/torneo
                 if tag_name in ["STRONG", "H5", "DIV", "P"]:
                     if len(text) > 0:
-                        # controlla se il testo contiene orario + partita (es. 20:45 Team1 vs Team2)
-                        match = re.match(r"(\d{2}:\d{2})\s+(.+vs.+)", text)
-                        if match:
-                            current_group = f"{current_group} - {match.group(1)} {match.group(2)}"
+                        # Cerca pattern "Team A Vs Team B" nel testo
+                        match_partita = re.search(
+                            r'\b[A-Z][A-Za-z\s]*\s+Vs\s+[A-Z][A-Za-z\s]*\b',
+                            text, flags=re.IGNORECASE
+                        )
+                        if match_partita:
+                            current_group = match_partita.group(0)
                         else:
-                            current_group = text
+                            # Se non è una partita, lascia invariato current_group
+                            pass
 
                 elif tag_name == "A":
                     href = await el.get_attribute("href")
