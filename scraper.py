@@ -3,47 +3,48 @@ import asyncio
 from playwright.async_api import async_playwright
 import re
 
-PLATIN_URL = "https://www.platinsport.com/link/28sunxqrx/01.php"  # pagina diretta
-OUTPUT_FILE = "platinsport.m3u"
+PLATIN_URL = "https://www.platinsport.com/link/28sunxqrx/01.php"
 
 async def main():
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
-        print("[INFO] Carico la pagina...")
         await page.goto(PLATIN_URL, timeout=60000)
-        await page.wait_for_load_state("networkidle")  # aspetta che JS finisca
+        await page.wait_for_load_state("networkidle")
 
-        # Prendi tutto il contenuto della pagina
         content = await page.content()
 
-        # Trova tutte le partite (es. "Livingston vs Rangers")
+        # Trova tutte le partite principali (Livingston vs Rangers ...)
         matches = re.findall(r'\b[A-Z][A-Z\s]*\s+vs\s+[A-Z][A-Z\s]*\b', content, flags=re.IGNORECASE)
-        if not matches:
-            print("[WARN] Nessuna partita trovata")
-            matches = []
+        # Trova tutti i link AceStream
+        links = re.findall(r'http://127\.0\.0\.1:6878/ace/getstream\?id=[a-f0-9]+', content)
 
-        # Prendi tutti i link AceStream dalla pagina
-        ace_links = re.findall(r'acestream://[a-f0-9]{40,}', content, flags=re.IGNORECASE)
-        if not ace_links:
-            print("[WARN] Nessun link AceStream trovato")
+        if not matches or not links:
+            print("Nessuna partita o link trovati")
+            await browser.close()
+            return
 
-        # Scrivi la playlist M3U
-        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-            f.write("#EXTM3U\n")
+        # Iniziamo la playlist M3U
+        m3u = ["#EXTM3U"]
 
-            for i, link in enumerate(ace_links):
-                # Primo canale di ogni partita ha il nome della partita
-                if i < len(matches):
-                    title = matches[i].title()
-                else:
-                    title = f"Channel {i+1}"
+        link_index = 0
+        for match in matches:
+            match_name = match.title().strip()
+            # Primo link della partita
+            if link_index < len(links):
+                m3u.append(f"#EXTINF:-1,{match_name}")
+                m3u.append(links[link_index])
+                link_index += 1
+            # Link extra (associamo due per partita se presenti, si può cambiare)
+            extra_count = 2  # quanti Channel extra per partita vuoi aggiungere
+            for i in range(extra_count):
+                if link_index < len(links):
+                    m3u.append(f"#EXTINF:-1,{match_name} (Channel {i+2})")
+                    m3u.append(links[link_index])
+                    link_index += 1
 
-                content_id = link.replace("acestream://", "")
-                http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
-                f.write(f'#EXTINF:-1,{title}\n{http_link}\n')
-
-        print(f"[OK] Playlist salvata in {OUTPUT_FILE} con {len(ace_links)} canali")
+        # Stampa la playlist finale
+        print("\n".join(m3u))
 
         await browser.close()
 
