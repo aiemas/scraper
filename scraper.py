@@ -16,28 +16,24 @@ async def main():
 
         content = await page.content()
 
-        # Trova tutte le partite
-        matches = re.findall(r'\b[A-Z][A-Z\s]*\s+vs\s+[A-Z][A-Z\s]*\b', content, flags=re.IGNORECASE)
-        matches = [m.title() for m in matches]
-        if not matches:
-            print("[WARN] Nessuna partita trovata")
-            matches = []
+        # Trova blocchi: partita + link vicini
+        pattern = re.compile(
+            r'([A-Z][A-Z\s]*\s+vs\s+[A-Z][A-Z\s]*)(.*?)((?=</div)|(?=<br)|$)',
+            flags=re.IGNORECASE | re.DOTALL
+        )
 
-        # Trova tutti i link AceStream
-        ace_links = re.findall(r'acestream://[a-f0-9]{40,}', content, flags=re.IGNORECASE)
-        if not ace_links:
-            print("[WARN] Nessun link AceStream trovato")
-
-        # Raggruppa i link per partita
         grouped_links = {}
-        if matches:
-            links_per_match = len(ace_links)   # <<< MODIFICA FATTA QUI
-            for i, match in enumerate(matches):
-                start = i * links_per_match
-                end = (i + 1) * links_per_match
-                grouped_links[match] = ace_links[start:end]
-        else:
-            grouped_links["Unknown Event"] = ace_links
+        for match in pattern.finditer(content):
+            match_name = match.group(1).title().strip()
+            block = match.group(2)
+
+            # trova i link in questo blocco
+            ace_links = re.findall(r'acestream://[a-f0-9]{40,}', block, flags=re.IGNORECASE)
+            if ace_links:
+                grouped_links[match_name] = ace_links
+
+        if not grouped_links:
+            print("[WARN] Nessuna partita con link trovata!")
 
         # Scrivi la playlist M3U
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
@@ -49,7 +45,7 @@ async def main():
                     http_link = f"http://127.0.0.1:6878/ace/getstream?id={content_id}"
                     f.write(f'#EXTINF:-1 group-title="{match}",{title}\n{http_link}\n')
 
-        print(f"[OK] Playlist salvata in {OUTPUT_FILE} con {len(ace_links)} canali")
+        print(f"[OK] Playlist salvata in {OUTPUT_FILE} con {sum(len(v) for v in grouped_links.values())} canali")
         await browser.close()
 
 if __name__ == "__main__":
