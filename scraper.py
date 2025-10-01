@@ -31,7 +31,7 @@ async def main():
         # Raggruppa i link per partita
         grouped_links = {}
         if matches:
-            links_per_match = max(1, len(ace_links) // len(matches))
+            links_per_match = len(ace_links)   # <<< MODIFICA FATTA QUI
             for i, match in enumerate(matches):
                 start = i * links_per_match
                 end = (i + 1) * links_per_match
