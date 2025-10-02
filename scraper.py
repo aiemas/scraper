@@ -3,7 +3,7 @@ import asyncio
 from playwright.async_api import async_playwright
 import re
 
-PLATIN_URL = "https://www.platinsport.com/link/01wedxrq/01.php"
+PLATIN_URL = "https://www.platinsport.com/link/02dorxn/01.php"
 OUTPUT_FILE = "platinsport.m3u"
 
 async def main():
